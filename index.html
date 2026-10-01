@@ -1,0 +1,1628 @@
+<!DOCTYPE html>
+<html lang="zh-TW" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>👾 PIXEL ARCADE 像素遊樂町 | 復古小遊戲入口站</title>
+  
+  <!-- Google Fonts: 復古像素中文 DotGothic16、8-Bit Press Start 2P、VT323 -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- FontAwesome Icons for Pixel & Arcade Controls -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            arcade: {
+              bg: '#0a0314',
+              surface: '#15082a',
+              card: '#1d0b38',
+              border: '#441d7d',
+              cyan: '#00f0ff',
+              pink: '#ff007f',
+              yellow: '#ffe600',
+              green: '#39ff14',
+              orange: '#ff6600',
+              purple: '#9d00ff'
+            }
+          },
+          fontFamily: {
+            pixelZh: ['"DotGothic16"', 'sans-serif'],
+            arcadeEn: ['"Press Start 2P"', 'monospace'],
+            terminal: ['"VT323"', 'monospace']
+          },
+          boxShadow: {
+            'pixel-pink': '4px 4px 0px #ff007f',
+            'pixel-cyan': '4px 4px 0px #00f0ff',
+            'pixel-yellow': '4px 4px 0px #ffe600',
+            'pixel-green': '4px 4px 0px #39ff14',
+            'pixel-deep': '6px 6px 0px #000000',
+            'neon-glow': '0 0 15px rgba(0, 240, 255, 0.4), inset 0 0 10px rgba(255, 0, 127, 0.3)'
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* 全域像素字型與基礎重設 */
+    * {
+      image-rendering: pixelated;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    
+    body {
+      background-color: #0a0314;
+      color: #e2e8f0;
+      font-family: 'DotGothic16', monospace;
+      overflow-x: hidden;
+    }
+
+    /* 像素邊框立體效果 */
+    .pixel-box {
+      border: 3px solid #ff007f;
+      box-shadow: 4px 4px 0px #00f0ff, -3px -3px 0px #000000 inset;
+    }
+
+    .pixel-box-cyan {
+      border: 3px solid #00f0ff;
+      box-shadow: 4px 4px 0px #ff007f, -3px -3px 0px #000000 inset;
+    }
+
+    .pixel-box-green {
+      border: 3px solid #39ff14;
+      box-shadow: 4px 4px 0px #ffe600, -3px -3px 0px #000000 inset;
+    }
+
+    /* 像素按鍵按壓觸感 */
+    .pixel-btn {
+      position: relative;
+      transition: transform 0.05s ease, box-shadow 0.05s ease;
+      cursor: pointer;
+    }
+    .pixel-btn:active {
+      transform: translate(3px, 3px);
+      box-shadow: 1px 1px 0px #000 !important;
+    }
+
+    /* CRT 掃描線層 */
+    .crt-overlay {
+      pointer-events: none;
+      position: fixed;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+      background-size: 100% 4px, 6px 100%;
+      z-index: 9999;
+      opacity: 0.85;
+      transition: opacity 0.3s ease;
+    }
+    .crt-overlay.disabled {
+      opacity: 0;
+    }
+
+    /* 復古 CRT 螢幕弧度與角落微暈 */
+    .crt-screen-glow {
+      box-shadow: inset 0 0 100px rgba(0, 240, 255, 0.08), inset 0 0 40px rgba(255, 0, 127, 0.08);
+    }
+
+    /* 跑馬燈自訂無縫平移 */
+    @keyframes marqueeMove {
+      0% { transform: translateX(0%); }
+      100% { transform: translateX(-50%); }
+    }
+    .marquee-track {
+      display: flex;
+      width: 200%;
+      animation: marqueeMove 24s linear infinite;
+    }
+    .marquee-track:hover {
+      animation-play-state: paused;
+    }
+
+    /* 自訂滾動條 */
+    ::-webkit-scrollbar {
+      width: 10px;
+      height: 10px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0a0314;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #ff007f;
+      border: 2px solid #00f0ff;
+    }
+
+    /* 街機按鍵光暈 */
+    .arcade-glow-text {
+      text-shadow: 0 0 8px rgba(0, 240, 255, 0.8), 0 0 16px rgba(255, 0, 127, 0.5);
+    }
+  </style>
+</head>
+<body class="crt-screen-glow min-h-screen flex flex-col justify-between selection:bg-arcade-pink selection:text-white">
+
+  <!-- CRT 掃描線濾鏡層 -->
+  <div id="crtOverlay" class="crt-overlay"></div>
+
+  <!-- Web Audio API 復古音效晶片合成器 (免外裝音檔) -->
+  <script>
+    class RetroSoundEngine {
+      constructor() {
+        this.ctx = null;
+        this.muted = false;
+      }
+      
+      init() {
+        if (!this.ctx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          if (AudioContext) {
+            this.ctx = new AudioContext();
+          }
+        }
+        if (this.ctx && this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+      }
+
+      playTone(freq, type = 'square', duration = 0.08, vol = 0.06) {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+        try {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = type;
+          osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+          gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + duration);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + duration);
+        } catch(e) {}
+      }
+
+      playCoin() {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+        try {
+          const t = this.ctx.currentTime;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'square';
+          osc.frequency.setValueAtTime(987.77, t); // B5
+          osc.frequency.setValueAtTime(1318.51, t + 0.09); // E6
+          gain.gain.setValueAtTime(0.09, t);
+          gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.38);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(t);
+          osc.stop(t + 0.4);
+        } catch(e) {}
+      }
+
+      playPowerup() {
+        if (this.muted) return;
+        [330, 392, 659, 523, 587, 784].forEach((freq, idx) => {
+          setTimeout(() => this.playTone(freq, 'square', 0.07, 0.07), idx * 45);
+        });
+      }
+
+      playGameOver() {
+        if (this.muted) return;
+        [440, 370, 311, 220].forEach((freq, idx) => {
+          setTimeout(() => this.playTone(freq, 'sawtooth', 0.14, 0.09), idx * 100);
+        });
+      }
+
+      playClick() {
+        this.playTone(600, 'square', 0.03, 0.04);
+      }
+    }
+
+    const retroAudio = new RetroSoundEngine();
+  </script>
+
+  <!-- 頂部 Y2K 復古走馬燈跑馬燈條 -->
+  <aside aria-label="系統廣播" class="bg-black/90 border-b-2 border-arcade-pink py-1.5 px-3 overflow-hidden text-xs font-pixelZh text-arcade-cyan flex items-center shadow-md z-40 sticky top-0">
+    <div class="flex items-center gap-2 bg-arcade-pink text-black font-bold px-2 py-0.5 text-[11px] shrink-0 mr-3 animate-pulse">
+      <i class="fa-solid fa-bullhorn text-[10px]"></i>
+      <span>街機特報</span>
+    </div>
+    
+    <div class="overflow-hidden whitespace-nowrap w-full">
+      <div class="marquee-track font-terminal text-sm tracking-wider">
+        <span class="inline-block px-4 text-arcade-yellow">★ 歡迎來到 PIXEL ARCADE 像素遊樂町！今日免費投幣不限次數 ★</span>
+        <span class="inline-block px-4 text-white">⚡ 系統架構：支援獨立【單檔 game.html】即時合成接入！</span>
+        <span class="inline-block px-4 text-arcade-green">👾 貪吃蛇與打磚塊雙核街機已就緒！點擊下方卡片即可立即開打！</span>
+        <span class="inline-block px-4 text-arcade-pink">★ 保持千禧像素魂：按下右上角開關可自由切換 CRT 掃描線與復古晶片音效 ★</span>
+        
+        <!-- 重複內容達成無縫循環 -->
+        <span class="inline-block px-4 text-arcade-yellow">★ 歡迎來到 PIXEL ARCADE 像素遊樂町！今日免費投幣不限次數 ★</span>
+        <span class="inline-block px-4 text-white">⚡ 系統架構：支援獨立【單檔 game.html】即時合成接入！</span>
+        <span class="inline-block px-4 text-arcade-green">👾 貪吃蛇與打磚塊雙核街機已就緒！點擊下方卡片即可立即開打！</span>
+        <span class="inline-block px-4 text-arcade-pink">★ 保持千禧像素魂：按下右上角開關可自由切換 CRT 掃描線與復古晶片音效 ★</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- 主導覽列 Navigation -->
+  <header class="bg-arcade-surface/95 border-b-4 border-arcade-border backdrop-blur-md sticky top-7 z-30 px-3 sm:px-8 py-3">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+      
+      <!-- 標誌 Logo -->
+      <a href="#home" onclick="retroAudio.playClick()" class="flex items-center gap-2 group cursor-pointer">
+        <div class="w-10 h-10 bg-arcade-pink text-black flex items-center justify-center text-xl font-bold border-2 border-arcade-cyan shadow-pixel-cyan group-hover:scale-105 transition-transform">
+          👾
+        </div>
+        <div>
+          <div class="flex items-center gap-1.5">
+            <span class="font-arcadeEn text-sm sm:text-base text-arcade-cyan arcade-glow-text tracking-tighter">PIXEL ARCADE</span>
+            <span class="text-[10px] bg-arcade-yellow text-black px-1 font-bold rounded-sm animate-bounce">2000s</span>
+          </div>
+          <div class="text-xs text-arcade-pink tracking-widest font-pixelZh">像素遊樂町 · 遊戲主目錄</div>
+        </div>
+      </a>
+
+      <!-- 導覽連結 (Home, News, Games) -->
+      <nav class="flex items-center gap-2 sm:gap-4 order-3 sm:order-2 w-full sm:w-auto justify-center sm:justify-start pt-2 sm:pt-0 border-t sm:border-t-0 border-arcade-border/50">
+        <a href="#home" onclick="retroAudio.playClick()" class="nav-item px-3 py-1.5 text-sm font-bold border-2 border-transparent hover:border-arcade-cyan hover:text-arcade-cyan hover:bg-arcade-card transition-all flex items-center gap-1.5">
+          <i class="fa-solid fa-house text-xs text-arcade-pink"></i>
+          <span>首頁 Home</span>
+        </a>
+        <a href="#news" onclick="retroAudio.playClick()" class="nav-item px-3 py-1.5 text-sm font-bold border-2 border-transparent hover:border-arcade-yellow hover:text-arcade-yellow hover:bg-arcade-card transition-all flex items-center gap-1.5">
+          <i class="fa-solid fa-newspaper text-xs text-arcade-yellow"></i>
+          <span>最新消息 News</span>
+        </a>
+        <a href="#games" onclick="retroAudio.playClick()" class="nav-item px-3 py-1.5 text-sm font-bold border-2 border-transparent hover:border-arcade-green hover:text-arcade-green hover:bg-arcade-card transition-all flex items-center gap-1.5">
+          <i class="fa-solid fa-gamepad text-xs text-arcade-green"></i>
+          <span>遊戲專區 Games</span>
+        </a>
+      </nav>
+
+      <!-- 復古輔助控制項與代幣 (CRT、音效、投幣) -->
+      <div class="flex items-center gap-2 sm:gap-3 order-2 sm:order-3">
+        
+        <!-- CRT 掃描線開關 -->
+        <button id="toggleCrtBtn" title="切換 CRT 掃描線濾鏡" onclick="toggleCrt()" class="pixel-btn bg-black text-arcade-cyan border-2 border-arcade-cyan px-2 py-1 text-xs hover:bg-arcade-cyan hover:text-black transition-colors flex items-center gap-1 shadow-pixel-deep">
+          <i class="fa-solid fa-tv text-xs"></i>
+          <span class="hidden md:inline">CRT:</span>
+          <span id="crtStatusText" class="font-bold">開</span>
+        </button>
+
+        <!-- 8-Bit 音效開關 -->
+        <button id="toggleAudioBtn" title="切換 8-Bit 音效" onclick="toggleAudio()" class="pixel-btn bg-black text-arcade-green border-2 border-arcade-green px-2 py-1 text-xs hover:bg-arcade-green hover:text-black transition-colors flex items-center gap-1 shadow-pixel-deep">
+          <i id="audioIcon" class="fa-solid fa-volume-high text-xs"></i>
+          <span class="hidden md:inline">音效:</span>
+          <span id="audioStatusText" class="font-bold">開</span>
+        </button>
+
+        <!-- 街機代幣計數與投幣鍵 -->
+        <div class="flex items-center bg-black border-2 border-arcade-yellow px-2 py-1 shadow-pixel-deep">
+          <span class="text-arcade-yellow font-arcadeEn text-xs mr-1.5">🪙</span>
+          <span id="coinCount" class="font-arcadeEn text-arcade-yellow text-xs mr-2">99</span>
+          <button onclick="insertCoin()" class="pixel-btn bg-arcade-pink text-white hover:bg-pink-600 px-2 py-0.5 text-[11px] font-bold tracking-tight">
+            投幣
+          </button>
+        </div>
+
+      </div>
+
+    </div>
+  </header>
+
+  <!-- 主內容容器 -->
+  <main class="max-w-7xl mx-auto px-3 sm:px-6 py-6 space-y-12 flex-grow w-full">
+
+    <!-- 1. 首頁橫幅 (Home Hero) -->
+    <section id="home" class="scroll-mt-24">
+      <div class="pixel-box bg-arcade-card p-4 sm:p-8 relative overflow-hidden">
+        
+        <!-- 背景霓虹網格裝飾 -->
+        <div class="absolute inset-0 bg-[radial-gradient(#441d7d_1px,transparent_1px)] [background-size:16px_16px] opacity-40 pointer-events-none"></div>
+        <div class="absolute -right-16 -top-16 w-56 h-56 bg-arcade-pink/10 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="absolute -left-16 -bottom-16 w-56 h-56 bg-arcade-cyan/10 rounded-full blur-3xl pointer-events-none"></div>
+
+        <div class="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+          
+          <!-- 英雄區文字與簡介 -->
+          <div class="lg:col-span-7 space-y-4">
+            
+            <div class="inline-flex items-center gap-2 px-3 py-1 bg-black/60 border border-arcade-green text-arcade-green text-xs font-arcadeEn">
+              <span class="inline-block w-2 h-2 bg-arcade-green rounded-full animate-ping"></span>
+              <span>SYSTEM READY // V2.4_READY</span>
+            </div>
+
+            <h1 class="text-2xl sm:text-4xl lg:text-5xl font-bold tracking-tight leading-tight text-white">
+              喚醒熱血童年！<br>
+              <span class="text-transparent bg-clip-text bg-gradient-to-r from-arcade-cyan via-arcade-yellow to-arcade-pink font-arcadeEn text-xl sm:text-3xl lg:text-4xl block mt-1 arcade-glow-text">
+                PIXEL ARCADE 像素遊樂町
+              </span>
+            </h1>
+
+            <p class="text-slate-300 text-sm sm:text-base leading-relaxed font-pixelZh">
+              歡迎來到千禧世代經典遊戲殿堂。本站採用純輕量架構打造，收錄最純粹的懷舊街機小遊戲。
+              支援手機與桌面裝置跨平台自適應，並具備專屬「GAME.HTML」插槽技術，隨時迎接新遊戲模組接入擴充！
+            </p>
+
+            <!-- 操作按鈕群 -->
+            <div class="pt-2 flex flex-wrap items-center gap-3">
+              <button onclick="scrollToGames(); retroAudio.playPowerup();" class="pixel-btn bg-arcade-pink hover:bg-pink-600 text-white font-bold text-sm sm:text-base px-6 py-3 border-2 border-white shadow-pixel-cyan flex items-center gap-2">
+                <i class="fa-solid fa-gamepad text-arcade-yellow text-lg"></i>
+                <span>立即選遊戲遊玩</span>
+              </button>
+
+              <button onclick="insertCoin();" class="pixel-btn bg-black hover:bg-slate-900 text-arcade-yellow font-bold text-sm sm:text-base px-5 py-3 border-2 border-arcade-yellow shadow-pixel-deep flex items-center gap-2 font-arcadeEn">
+                <span>INSERT COIN</span>
+                <span class="text-xs bg-arcade-yellow text-black px-1.5 py-0.5 rounded font-pixelZh">+1枚</span>
+              </button>
+            </div>
+
+            <!-- 數據統計看板 -->
+            <div class="grid grid-cols-3 gap-2 sm:gap-4 pt-3 text-center">
+              <div class="bg-black/70 border border-arcade-border p-2">
+                <div class="text-[10px] text-gray-400 font-pixelZh">收錄遊戲總量</div>
+                <div id="statTotalGames" class="text-base sm:text-xl font-arcadeEn text-arcade-cyan">06 款</div>
+              </div>
+              <div class="bg-black/70 border border-arcade-border p-2">
+                <div class="text-[10px] text-gray-400 font-pixelZh">連線玩家 (BOTS)</div>
+                <div class="text-base sm:text-xl font-arcadeEn text-arcade-green">1,402 人</div>
+              </div>
+              <div class="bg-black/70 border border-arcade-border p-2">
+                <div class="text-[10px] text-gray-400 font-pixelZh">擴充合入支援度</div>
+                <div class="text-base sm:text-xl font-arcadeEn text-arcade-yellow">100% OK</div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- 英雄區街機視覺展示框 (動態預覽螢幕) -->
+          <div class="lg:col-span-5 flex justify-center">
+            <div class="w-full max-w-sm bg-black border-4 border-arcade-cyan p-3 shadow-pixel-pink relative group">
+              
+              <!-- 街機頂部機台看板 -->
+              <div class="bg-arcade-surface border-b-2 border-arcade-cyan py-1 px-3 text-center mb-2 flex justify-between items-center text-xs">
+                <span class="text-arcade-pink font-arcadeEn text-[10px]">★ 2-PLAYER ★</span>
+                <span class="text-arcade-green font-bold text-[10px]">HOT SPOTLIGHT</span>
+              </div>
+
+              <!-- 機台螢幕 (動態 Canvas 像素裝飾背景) -->
+              <div class="relative bg-[#02020a] border-2 border-arcade-border overflow-hidden h-52 flex flex-col items-center justify-center text-center p-3">
+                <canvas id="heroHeroCanvas" class="absolute inset-0 w-full h-full opacity-60"></canvas>
+                
+                <div class="relative z-10 space-y-2">
+                  <div class="inline-block bg-arcade-pink/90 text-white font-arcadeEn text-[11px] px-2 py-0.5 border border-white">
+                    FEATURED TITLE
+                  </div>
+                  <h3 class="text-xl sm:text-2xl font-bold text-arcade-yellow arcade-glow-text font-pixelZh">
+                    霓虹像素貪吃蛇 2000
+                  </h3>
+                  <p class="text-xs text-slate-300 font-pixelZh">
+                    超流暢晶片手感 · 隨機生成像素寶石 · 支援觸控搖桿
+                  </p>
+                  <button onclick="launchGameById('snake'); retroAudio.playCoin();" class="pixel-btn mt-2 bg-arcade-cyan text-black font-bold px-4 py-1.5 text-xs hover:bg-white border border-black shadow-pixel-yellow flex items-center gap-1.5 mx-auto">
+                    <i class="fa-solid fa-play text-xs"></i>
+                    <span>啟動此機台 (START)</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- 街機底座搖桿按鍵仿真裝飾 -->
+              <div class="bg-arcade-surface pt-2.5 pb-1 px-3 mt-2 flex justify-between items-center border-t border-arcade-border text-xs">
+                <div class="flex items-center gap-1.5">
+                  <div class="w-4 h-4 rounded-full bg-red-600 border border-black shadow-inner"></div>
+                  <span class="text-[10px] text-gray-400 font-arcadeEn">STICK</span>
+                </div>
+                <div class="flex gap-1.5">
+                  <div class="w-3.5 h-3.5 rounded-full bg-arcade-cyan border border-black"></div>
+                  <div class="w-3.5 h-3.5 rounded-full bg-arcade-yellow border border-black"></div>
+                  <div class="w-3.5 h-3.5 rounded-full bg-arcade-pink border border-black"></div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+    <!-- 2. 最新消息 (News / BBS 終端公告欄) -->
+    <section id="news" class="scroll-mt-24 space-y-4">
+      
+      <div class="flex items-center justify-between border-b-2 border-arcade-border pb-2">
+        <div class="flex items-center gap-2">
+          <span class="text-xl text-arcade-yellow">📰</span>
+          <h2 class="text-xl sm:text-2xl font-bold text-white font-pixelZh tracking-wide">
+            最新消息 · BBS 系統公告板
+          </h2>
+        </div>
+        <span class="text-xs font-terminal text-arcade-green tracking-wider">
+          STATUS: ONLINE [TELNET/MODEM 56K]
+        </span>
+      </div>
+
+      <!-- 終端機風格容器 -->
+      <div class="bg-black/90 border-2 border-arcade-green p-4 font-terminal text-arcade-green text-base shadow-pixel-deep space-y-4">
+        
+        <!-- BBS 頂部標題標識 -->
+        <div class="border-b border-arcade-green/40 pb-2 flex flex-wrap justify-between items-center text-xs sm:text-sm">
+          <div>[BBS SYSTEM] PIXEL_HUB // BOARD: ANNOUNCE // SYSOP: GEMINI</div>
+          <div class="text-arcade-yellow">最後更新日誌：2026-Q4 STABLE</div>
+        </div>
+
+        <!-- 條目清單 -->
+        <div class="space-y-3 font-pixelZh text-sm divide-y divide-arcade-border/40">
+          
+          <!-- 公告 1：核心擴充說明 (後續合併架構) -->
+          <article class="pt-3 first:pt-0">
+            <div class="flex items-center gap-2 mb-1">
+              <span class="bg-arcade-green text-black px-1.5 py-0.2 text-xs font-bold font-arcadeEn">CORE UPDATE</span>
+              <span class="text-arcade-cyan font-bold text-sm sm:text-base">街機合成器架構已啟動：隨時準備接入新遊戲！</span>
+              <span class="text-gray-400 text-xs ml-auto font-terminal">NEW RELEASE</span>
+            </div>
+            <p class="text-gray-300 text-xs sm:text-sm leading-relaxed pl-1">
+              本入口首頁已完成單檔化模組包裝。站長後續在聊天室中發送任何獨立生成的 <code class="text-arcade-yellow bg-arcade-card px-1 border border-arcade-border">game.html</code>，系統會直接透過內建的沙盒 iframe 與卡片資料庫進行無縫合入，無需改寫底層外框！
+            </p>
+          </article>
+
+          <!-- 公告 2：遊戲上線通知 -->
+          <article class="pt-3">
+            <div class="flex items-center gap-2 mb-1">
+              <span class="bg-arcade-pink text-white px-1.5 py-0.2 text-xs font-bold font-arcadeEn">GAME LAUNCH</span>
+              <span class="text-arcade-yellow font-bold text-sm sm:text-base">首發經典雙彈：【像素貪吃蛇】與【星際彈球打磚塊】同步開放！</span>
+              <span class="text-gray-400 text-xs ml-auto font-terminal">HOT</span>
+            </div>
+            <p class="text-gray-300 text-xs sm:text-sm leading-relaxed pl-1">
+              免下載、免安裝外掛！採用純 HTML5 Canvas 渲染引擎，支援桌機鍵盤方向鍵與手機虛擬搖桿，隨點隨玩，重溫 80-90 年代街機手感。
+            </p>
+          </article>
+
+          <!-- 公告 3：聲效與 CRT 視覺說明 -->
+          <article class="pt-3">
+            <div class="flex items-center gap-2 mb-1">
+              <span class="bg-arcade-cyan text-black px-1.5 py-0.2 text-xs font-bold font-arcadeEn">FEATURE</span>
+              <span class="text-white font-bold text-sm sm:text-base">千禧氛圍感：CRT 掃描線濾鏡與 8-Bit 晶片合成音效</span>
+              <span class="text-gray-400 text-xs ml-auto font-terminal">Y2K VIBE</span>
+            </div>
+            <p class="text-gray-300 text-xs sm:text-sm leading-relaxed pl-1">
+              右上角面板可即時開關 CRT 螢幕掃描線，並透過 Web Audio API 純程式動態模擬 8-bit 投幣與音效晶片，不依賴任何外部音效連結，離線也能百分之百流暢發聲。
+            </p>
+          </article>
+
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- 3. 遊戲專區 (Games Hub) -->
+    <section id="games" class="scroll-mt-24 space-y-6">
+      
+      <!-- 區塊標題與篩選列 -->
+      <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b-2 border-arcade-border pb-3">
+        
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="text-2xl text-arcade-pink">🕹️</span>
+            <h2 class="text-xl sm:text-3xl font-bold text-white font-pixelZh">
+              遊戲專區 · 街機機台庫
+            </h2>
+          </div>
+          <p class="text-xs sm:text-sm text-gray-400 font-pixelZh mt-1">
+            點選卡片即可拉起街機視窗立即遊玩；標有「插槽 (Slot)」的項目代表後續將合入的新遊戲！
+          </p>
+        </div>
+
+        <!-- 分類標籤篩選切換 (全部 / 街機懷舊 / 動作射擊 / 益智解謎 / 待接入插槽) -->
+        <div class="flex flex-wrap items-center gap-1.5 bg-black/60 p-1.5 border border-arcade-border">
+          <button onclick="filterGames('all', this)" class="category-btn active pixel-btn px-2.5 py-1 text-xs font-bold bg-arcade-pink text-white border border-white">
+            全部 (<span id="countAll">6</span>)
+          </button>
+          <button onclick="filterGames('arcade', this)" class="category-btn pixel-btn px-2.5 py-1 text-xs font-bold bg-arcade-surface text-gray-300 hover:text-white border border-transparent">
+            街機懷舊
+          </button>
+          <button onclick="filterGames('action', this)" class="category-btn pixel-btn px-2.5 py-1 text-xs font-bold bg-arcade-surface text-gray-300 hover:text-white border border-transparent">
+            動作敏捷
+          </button>
+          <button onclick="filterGames('puzzle', this)" class="category-btn pixel-btn px-2.5 py-1 text-xs font-bold bg-arcade-surface text-gray-300 hover:text-white border border-transparent">
+            益智策略
+          </button>
+          <button onclick="filterGames('slot', this)" class="category-btn pixel-btn px-2.5 py-1 text-xs font-bold bg-arcade-surface text-arcade-yellow hover:text-white border border-transparent">
+            待接入插槽
+          </button>
+        </div>
+
+      </div>
+
+      <!-- 遊戲卡片網格 (Game Card Grid) -->
+      <div id="gamesGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- 卡片將由下方 GAME_DATABASE 陣列動態生成，維持擴充彈性 -->
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- 街機框彈跳遊玩視窗 (Arcade Modal / Game Player) -->
+  <div id="arcadeModal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm hidden flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
+    
+    <div class="w-full max-w-4xl bg-arcade-surface border-4 border-arcade-cyan shadow-2xl relative flex flex-col max-h-[96vh]">
+      
+      <!-- 視窗頂部標題列 -->
+      <div class="bg-black border-b-2 border-arcade-cyan px-3 py-2 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="w-3 h-3 bg-red-500 rounded-full animate-pulse inline-block"></span>
+          <span id="modalGameTitle" class="font-bold text-arcade-yellow text-sm sm:text-base font-pixelZh tracking-wide">
+            街機機台
+          </span>
+          <span id="modalBadge" class="hidden sm:inline-block text-[10px] bg-arcade-pink text-white px-1.5 py-0.5 font-arcadeEn">
+            ARCADE READY
+          </span>
+        </div>
+
+        <!-- 視窗控制按鍵 (全螢幕、重開、關閉) -->
+        <div class="flex items-center gap-2">
+          <button onclick="restartCurrentGame()" title="重新開始" class="pixel-btn bg-arcade-card hover:bg-arcade-border text-arcade-cyan px-2 py-1 text-xs border border-arcade-cyan">
+            <i class="fa-solid fa-rotate-right"></i>
+            <span class="hidden sm:inline ml-1 font-pixelZh">重來</span>
+          </button>
+          
+          <button onclick="toggleModalFullscreen()" title="全螢幕" class="pixel-btn bg-arcade-card hover:bg-arcade-border text-arcade-green px-2 py-1 text-xs border border-arcade-green">
+            <i class="fa-solid fa-expand"></i>
+          </button>
+
+          <button onclick="closeArcadeModal()" title="返回選單" class="pixel-btn bg-arcade-pink hover:bg-pink-600 text-white px-2.5 py-1 text-xs border border-white font-bold">
+            <i class="fa-solid fa-xmark"></i>
+            <span class="hidden sm:inline ml-1 font-pixelZh">退出機台</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 遊戲畫面主要視窗 (支援 Canvas 與 未來合併接入的 iframe) -->
+      <div class="relative bg-black flex-grow flex items-center justify-center min-h-[320px] sm:min-h-[460px] overflow-hidden p-1 sm:p-3">
+        
+        <!-- 內部遊戲 Canvas 容器 -->
+        <div id="canvasViewport" class="w-full h-full flex flex-col items-center justify-center relative">
+          <canvas id="activeGameCanvas" class="max-w-full max-h-[55vh] sm:max-h-[62vh] border-2 border-arcade-border bg-[#02020a] shadow-inner"></canvas>
+          
+          <!-- 遊戲中浮水印與計分抬頭顯示 (HUD) -->
+          <div id="gameHud" class="absolute top-2 left-4 right-4 flex justify-between items-center text-xs font-arcadeEn pointer-events-none text-white drop-shadow-md">
+            <div id="hudScore">SCORE: 0000</div>
+            <div id="hudExtra">STATUS: OK</div>
+          </div>
+
+          <!-- 遊戲結束/暫停覆蓋層 -->
+          <div id="gameOverlay" class="absolute inset-0 bg-black/80 flex flex-col items-center justify-center text-center p-4 hidden z-20">
+            <h3 id="overlayTitle" class="text-2xl sm:text-3xl font-bold text-arcade-pink font-pixelZh mb-2 arcade-glow-text">
+              GAME OVER
+            </h3>
+            <p id="overlaySubtitle" class="text-arcade-yellow text-sm font-arcadeEn mb-4">
+              FINAL SCORE: 0
+            </p>
+            <button onclick="restartCurrentGame(); retroAudio.playCoin();" class="pixel-btn bg-arcade-cyan text-black font-bold px-6 py-2.5 text-sm hover:bg-white border-2 border-white shadow-pixel-pink font-pixelZh">
+              再次挑戰 (REPLAY)
+            </button>
+          </div>
+        </div>
+
+        <!-- 外部嵌入 iframe (供後續合併 game.html 使用) -->
+        <iframe id="gameIframe" class="w-full h-[55vh] sm:h-[65vh] border-0 hidden" sandbox="allow-scripts allow-same-origin"></iframe>
+
+      </div>
+
+      <!-- 街機下方控制區：手機 RWD 專屬虛擬方向鍵 (D-Pad) 與 功能鍵 -->
+      <div id="virtualController" class="bg-arcade-surface border-t-2 border-arcade-cyan p-2.5 flex flex-wrap items-center justify-between gap-3 select-none">
+        
+        <!-- 虛擬十字鍵 (D-Pad) -->
+        <div class="grid grid-cols-3 gap-1 w-28 sm:w-32 mx-auto sm:mx-0">
+          <div></div>
+          <button class="pixel-btn bg-black text-white hover:bg-arcade-card active:bg-arcade-pink border border-arcade-border h-9 flex items-center justify-center text-xs font-bold"
+                  ontouchstart="handleVirtualKey('ArrowUp', true)" ontouchend="handleVirtualKey('ArrowUp', false)"
+                  onmousedown="handleVirtualKey('ArrowUp', true)" onmouseup="handleVirtualKey('ArrowUp', false)">
+            <i class="fa-solid fa-caret-up text-arcade-cyan"></i>
+          </button>
+          <div></div>
+
+          <button class="pixel-btn bg-black text-white hover:bg-arcade-card active:bg-arcade-pink border border-arcade-border h-9 flex items-center justify-center text-xs font-bold"
+                  ontouchstart="handleVirtualKey('ArrowLeft', true)" ontouchend="handleVirtualKey('ArrowLeft', false)"
+                  onmousedown="handleVirtualKey('ArrowLeft', true)" onmouseup="handleVirtualKey('ArrowLeft', false)">
+            <i class="fa-solid fa-caret-left text-arcade-cyan"></i>
+          </button>
+          <div class="flex items-center justify-center text-[10px] text-gray-500 font-arcadeEn">D-PAD</div>
+          <button class="pixel-btn bg-black text-white hover:bg-arcade-card active:bg-arcade-pink border border-arcade-border h-9 flex items-center justify-center text-xs font-bold"
+                  ontouchstart="handleVirtualKey('ArrowRight', true)" ontouchend="handleVirtualKey('ArrowRight', false)"
+                  onmousedown="handleVirtualKey('ArrowRight', true)" onmouseup="handleVirtualKey('ArrowRight', false)">
+            <i class="fa-solid fa-caret-right text-arcade-cyan"></i>
+          </button>
+
+          <div></div>
+          <button class="pixel-btn bg-black text-white hover:bg-arcade-card active:bg-arcade-pink border border-arcade-border h-9 flex items-center justify-center text-xs font-bold"
+                  ontouchstart="handleVirtualKey('ArrowDown', true)" ontouchend="handleVirtualKey('ArrowDown', false)"
+                  onmousedown="handleVirtualKey('ArrowDown', true)" onmouseup="handleVirtualKey('ArrowDown', false)">
+            <i class="fa-solid fa-caret-down text-arcade-cyan"></i>
+          </button>
+          <div></div>
+        </div>
+
+        <!-- 說明指示 -->
+        <div class="hidden md:block text-center flex-grow text-xs text-gray-400 font-pixelZh">
+          鍵盤控制：方向鍵 <kbd class="px-1 bg-black border border-gray-600 text-arcade-cyan">↑</kbd> <kbd class="px-1 bg-black border border-gray-600 text-arcade-cyan">↓</kbd> <kbd class="px-1 bg-black border border-gray-600 text-arcade-cyan">←</kbd> <kbd class="px-1 bg-black border border-gray-600 text-arcade-cyan">→</kbd> 或空白鍵發射 / 行動
+        </div>
+
+        <!-- 虛擬動作鍵 (A / B 按鈕) -->
+        <div class="flex items-center gap-3 mx-auto sm:mx-0">
+          <div class="text-center">
+            <button class="pixel-btn w-11 h-11 rounded-full bg-arcade-pink text-white font-arcadeEn text-sm font-bold border-2 border-white shadow-md active:scale-95"
+                    ontouchstart="handleVirtualKey('Space', true)" ontouchend="handleVirtualKey('Space', false)"
+                    onmousedown="handleVirtualKey('Space', true)" onmouseup="handleVirtualKey('Space', false)">
+              A
+            </button>
+            <span class="block text-[9px] text-gray-400 mt-0.5">行動/發射</span>
+          </div>
+
+          <div class="text-center">
+            <button class="pixel-btn w-11 h-11 rounded-full bg-arcade-yellow text-black font-arcadeEn text-sm font-bold border-2 border-black shadow-md active:scale-95"
+                    ontouchstart="handleVirtualKey('KeyP', true)" ontouchend="handleVirtualKey('KeyP', false)"
+                    onmousedown="handleVirtualKey('KeyP', true)" onmouseup="handleVirtualKey('KeyP', false)">
+              P
+            </button>
+            <span class="block text-[9px] text-gray-400 mt-0.5">暫停</span>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- 頁尾 (Footer) 包含 Y2K 88x31 復古小貼紙徽章 -->
+  <footer class="bg-black border-t-4 border-arcade-pink mt-12 py-8 px-4 text-xs font-pixelZh">
+    <div class="max-w-7xl mx-auto space-y-6">
+      
+      <!-- 經典 88x31 像素貼紙列 (Retro Badges) -->
+      <div class="flex flex-wrap items-center justify-center gap-2 sm:gap-3 py-2">
+        
+        <!-- 徽章 1: Netscape Ready -->
+        <div class="w-[88px] h-[31px] bg-[#000080] border border-gray-300 text-white flex items-center justify-center text-[9px] font-bold tracking-tighter shadow">
+          NETSCAPE 4.0
+        </div>
+
+        <!-- 徽章 2: HTML5 Valid -->
+        <div class="w-[88px] h-[31px] bg-[#e34c26] border border-white text-white flex items-center justify-center text-[9px] font-bold tracking-tighter shadow">
+          HTML5 VALID
+        </div>
+
+        <!-- 徽章 3: 800x600 Optimized -->
+        <div class="w-[88px] h-[31px] bg-[#008080] border border-gray-300 text-white flex items-center justify-center text-[9px] font-bold tracking-tighter shadow">
+          800 x 600 RES
+        </div>
+
+        <!-- 徽章 4: Single File -->
+        <div class="w-[88px] h-[31px] bg-[#800080] border border-white text-arcade-yellow flex items-center justify-center text-[9px] font-bold tracking-tighter shadow">
+          1-FILE HUB
+        </div>
+
+        <!-- 徽章 5: Made with Pixel Love -->
+        <div class="w-[88px] h-[31px] bg-arcade-card border border-arcade-pink text-arcade-pink flex items-center justify-center text-[9px] font-bold tracking-tighter shadow">
+          MADE IN Y2K
+        </div>
+
+        <!-- 徽章 6: Ready for Game.html -->
+        <div class="w-[88px] h-[31px] bg-arcade-green border border-black text-black flex items-center justify-center text-[9px] font-bold tracking-tighter shadow">
+          SLOT MERGE OK
+        </div>
+
+      </div>
+
+      <!-- 復古網頁造訪計數器 (Visitor Hit Counter) -->
+      <div class="flex flex-col sm:flex-row items-center justify-center gap-3 text-center">
+        <span class="text-gray-400">您是第位造訪像素街機町的冒險者：</span>
+        <div class="inline-flex bg-black border-2 border-arcade-cyan px-2 py-0.5 font-terminal text-lg tracking-widest text-arcade-green shadow-inner">
+          <span class="text-arcade-pink">0</span>
+          <span class="text-arcade-pink">0</span>
+          <span>4</span>
+          <span>8</span>
+          <span>2</span>
+          <span class="text-arcade-yellow">9</span>
+          <span class="text-arcade-yellow animate-pulse">1</span>
+        </div>
+      </div>
+
+      <!-- 版權與合併準備說明 -->
+      <div class="border-t border-arcade-border/50 pt-4 text-center text-gray-400 space-y-1">
+        <p class="font-arcadeEn text-[10px] text-arcade-cyan">
+          PIXEL ARCADE HUB © 2000-2026. ALL RIGHTS RESERVED.
+        </p>
+        <p class="text-xs text-gray-500">
+          本入口頁專注於小遊戲集成展示。後續請於聊天室直接輸入指令提供 <code class="text-arcade-pink">game.html</code>，系統將自動完成卡片登錄與代碼合入。
+        </p>
+      </div>
+
+    </div>
+  </footer>
+
+  <!-- 核心遊戲註冊資料庫 (GAME_DATABASE) 與 模組化掛載系統 -->
+  <script>
+    /**
+     * 遊戲資料庫清單架構
+     * 後續收到其他 game.html 時，只需在此陣列替換 slot 或新增項目
+     * type: 'internal_snake' | 'internal_breakout' | 'iframe_src' | 'html_raw'
+     */
+    const GAME_DATABASE = [
+      {
+        id: 'snake',
+        title: '霓虹像素貪吃蛇 2000',
+        subtitle: 'NEON RETRO SNAKE',
+        category: 'arcade',
+        categoryName: '街機懷舊',
+        badge: 'HOT 熱門首推',
+        badgeColor: 'bg-arcade-pink text-white',
+        desc: '操作靈活的經典貪吃蛇！吞食霓虹像素果實，身體無限延伸並突破最高分記錄。',
+        stars: '★★★☆☆',
+        plays: '12,940',
+        type: 'internal_snake',
+        ready: true,
+        icon: '🐍'
+      },
+      {
+        id: 'breakout',
+        title: '星際彈球打磚塊',
+        subtitle: 'SPACE BREAKOUT',
+        category: 'action',
+        categoryName: '動作敏捷',
+        badge: 'NEW 推薦',
+        badgeColor: 'bg-arcade-green text-black',
+        desc: '滑動光子能量擋板，彈射反物質光球，徹底粉碎深空霓虹防禦磚塊矩陣！',
+        stars: '★★★★☆',
+        plays: '9,812',
+        type: 'internal_breakout',
+        ready: true,
+        icon: '🧱'
+      },
+      {
+        id: 'slot_03',
+        title: '擴充插槽 03 (待合入)',
+        subtitle: 'AWAITING GAME.HTML',
+        category: 'slot',
+        categoryName: '待接入插槽',
+        badge: 'SLOT 預留中',
+        badgeColor: 'bg-arcade-yellow text-black',
+        desc: '已就緒的合成插槽！在聊天室輸入指令並附上下一個 game.html 代碼，即可立即替換上架此遊戲。',
+        stars: '？？？',
+        plays: '0',
+        type: 'placeholder',
+        ready: false,
+        icon: '📦'
+      },
+      {
+        id: 'slot_04',
+        title: '擴充插槽 04 (待合入)',
+        subtitle: 'AWAITING GAME.HTML',
+        category: 'slot',
+        categoryName: '待接入插槽',
+        badge: 'SLOT 預留中',
+        badgeColor: 'bg-arcade-yellow text-black',
+        desc: '已就緒的合成插槽！支援各種益智方塊、俄羅斯方塊或解謎卡牌遊戲模組。',
+        stars: '？？？',
+        plays: '0',
+        type: 'placeholder',
+        ready: false,
+        icon: '🧩'
+      },
+      {
+        id: 'slot_05',
+        title: '擴充插槽 05 (待合入)',
+        subtitle: 'AWAITING GAME.HTML',
+        category: 'slot',
+        categoryName: '待接入插槽',
+        badge: 'SLOT 預留中',
+        badgeColor: 'bg-arcade-yellow text-black',
+        desc: '已就緒的合成插槽！支援太空射擊、雷電縱捲軸或像素射擊遊戲架構。',
+        stars: '？？？',
+        plays: '0',
+        type: 'placeholder',
+        ready: false,
+        icon: '🚀'
+      },
+      {
+        id: 'slot_06',
+        title: '擴充插槽 06 (待合入)',
+        subtitle: 'AWAITING GAME.HTML',
+        category: 'slot',
+        categoryName: '待接入插槽',
+        badge: 'SLOT 預留中',
+        badgeColor: 'bg-arcade-yellow text-black',
+        desc: '已就緒的合成插槽！支援各類 HTML5 Web 遊戲架構，純單檔合入零依賴。',
+        stars: '？？？',
+        plays: '0',
+        type: 'placeholder',
+        ready: false,
+        icon: '💾'
+      }
+    ];
+
+    // 渲染遊戲卡片至專區
+    function renderGameCards(filter = 'all') {
+      const grid = document.getElementById('gamesGrid');
+      grid.innerHTML = '';
+
+      const filtered = (filter === 'all') 
+        ? GAME_DATABASE 
+        : GAME_DATABASE.filter(g => g.category === filter);
+
+      filtered.forEach(game => {
+        const card = document.createElement('div');
+        card.className = `pixel-box bg-arcade-card p-4 flex flex-col justify-between group hover:border-arcade-yellow transition-all ${!game.ready ? 'border-dashed border-arcade-border' : ''}`;
+        
+        card.innerHTML = `
+          <div>
+            <!-- 卡片頂部標籤與狀態 -->
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs font-bold px-2 py-0.5 ${game.badgeColor} font-pixelZh">
+                ${game.badge}
+              </span>
+              <span class="text-xs text-arcade-cyan font-arcadeEn text-[10px]">
+                ${game.categoryName}
+              </span>
+            </div>
+
+            <!-- 像素預覽圖區塊 -->
+            <div class="bg-black border-2 border-arcade-border h-36 flex flex-col items-center justify-center p-3 relative overflow-hidden group-hover:border-arcade-cyan transition-colors mb-3">
+              <div class="text-4xl mb-1 transform group-hover:scale-125 transition-transform duration-300">
+                ${game.icon}
+              </div>
+              <div class="font-arcadeEn text-[11px] text-arcade-yellow tracking-wider text-center">
+                ${game.subtitle}
+              </div>
+              
+              ${!game.ready ? `
+                <div class="absolute inset-0 bg-black/75 flex flex-col items-center justify-center p-2 text-center">
+                  <span class="text-xs text-arcade-yellow font-bold animate-pulse font-pixelZh">【等待接收 game.html】</span>
+                  <span class="text-[10px] text-gray-400 mt-1 font-terminal">AWAITING CODE MERGE</span>
+                </div>
+              ` : `
+                <div class="absolute bottom-1 right-2 text-[10px] text-arcade-green font-terminal">
+                  ENGINE: 100% READY
+                </div>
+              `}
+            </div>
+
+            <!-- 標題與簡述 -->
+            <h3 class="text-base sm:text-lg font-bold text-white font-pixelZh group-hover:text-arcade-yellow transition-colors">
+              ${game.title}
+            </h3>
+            <p class="text-xs text-gray-300 mt-1.5 line-clamp-2 font-pixelZh leading-relaxed">
+              ${game.desc}
+            </p>
+          </div>
+
+          <!-- 卡片底部資訊與啟動按鈕 -->
+          <div class="mt-4 pt-3 border-t border-arcade-border/50">
+            <div class="flex items-center justify-between text-xs text-gray-400 mb-3 font-pixelZh">
+              <span>難度：<strong class="text-arcade-yellow">${game.stars}</strong></span>
+              <span>遊玩次數：<strong class="text-arcade-cyan">${game.plays}</strong></span>
+            </div>
+
+            ${game.ready ? `
+              <button onclick="launchGameById('${game.id}'); retroAudio.playCoin();" class="pixel-btn w-full bg-arcade-cyan hover:bg-white text-black font-bold py-2 px-3 text-xs sm:text-sm border-2 border-black shadow-pixel-pink flex items-center justify-center gap-2">
+                <i class="fa-solid fa-play text-xs"></i>
+                <span>投入代幣 · 開始遊戲</span>
+              </button>
+            ` : `
+              <button onclick="showSlotPrompt('${game.title}')" class="pixel-btn w-full bg-arcade-surface hover:bg-black text-gray-300 py-2 px-3 text-xs border border-dashed border-arcade-border flex items-center justify-center gap-1.5">
+                <i class="fa-solid fa-code-merge text-arcade-yellow"></i>
+                <span class="text-arcade-yellow font-bold">插槽已保留 (待合入)</span>
+              </button>
+            `}
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    // 分類篩選
+    function filterGames(category, btnElement) {
+      retroAudio.playClick();
+      document.querySelectorAll('.category-btn').forEach(btn => {
+        btn.classList.remove('bg-arcade-pink', 'text-white', 'border-white');
+        btn.classList.add('bg-arcade-surface', 'text-gray-300', 'border-transparent');
+      });
+      if (btnElement) {
+        btnElement.classList.add('bg-arcade-pink', 'text-white', 'border-white');
+        btnElement.classList.remove('bg-arcade-surface', 'text-gray-300', 'border-transparent');
+      }
+      renderGameCards(category);
+    }
+
+    // 彈出插槽預留提示 (無 alert 限制)
+    function showSlotPrompt(title) {
+      retroAudio.playTone(350, 'sawtooth', 0.1);
+      const hudScore = document.getElementById('hudScore');
+      // 可以在介面跑馬燈或代幣處閃爍提示
+      alertModalFeedback(`已保留插槽：${title}\n請在下一個指令將欲合併的 game.html 代碼發送進來，系統將為您接入上線！`);
+    }
+
+    // 自訂復古訊息盒 (避免使用原生 alert)
+    function alertModalFeedback(text) {
+      const box = document.createElement('div');
+      box.className = 'fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[9999] pixel-box bg-black p-5 text-white max-w-sm w-[90%] shadow-2xl text-center space-y-3';
+      box.innerHTML = `
+        <div class="text-arcade-yellow font-bold text-sm">【 👾 PIXEL ARCADE 系統通知 】</div>
+        <p class="text-xs text-gray-300 leading-relaxed font-pixelZh">${text.replace(/\n/g, '<br>')}</p>
+        <button onclick="this.parentElement.remove(); retroAudio.playClick();" class="pixel-btn bg-arcade-pink text-white font-bold px-4 py-1 text-xs border border-white">
+          我知道了 (OK)
+        </button>
+      `;
+      document.body.appendChild(box);
+    }
+  </script>
+
+  <script>
+    /**
+     * 內建第一款遊戲：經典像素貪吃蛇 (Snake Game)
+     */
+    class SnakeGameEngine {
+      constructor(canvas, onScoreUpdate, onGameOver) {
+        this.canvas = canvas;
+        this.ctx = canvas.getContext('2d');
+        this.onScoreUpdate = onScoreUpdate;
+        this.onGameOver = onGameOver;
+        this.gridSize = 20;
+        this.timer = null;
+        this.reset();
+      }
+
+      reset() {
+        this.canvas.width = 400;
+        this.canvas.height = 400;
+        this.tileCount = this.canvas.width / this.gridSize;
+        this.snake = [
+          { x: 10, y: 10 },
+          { x: 9, y: 10 },
+          { x: 8, y: 10 }
+        ];
+        this.dir = { x: 1, y: 0 };
+        this.nextDir = { x: 1, y: 0 };
+        this.food = this.spawnFood();
+        this.score = 0;
+        this.isRunning = false;
+        this.isPaused = false;
+        this.speed = 100; // ms
+        if (this.onScoreUpdate) this.onScoreUpdate(this.score);
+      }
+
+      spawnFood() {
+        let newFood;
+        while (!newFood || this.snake.some(s => s.x === newFood.x && s.y === newFood.y)) {
+          newFood = {
+            x: Math.floor(Math.random() * this.tileCount),
+            y: Math.floor(Math.random() * this.tileCount)
+          };
+        }
+        return newFood;
+      }
+
+      start() {
+        this.reset();
+        this.isRunning = true;
+        this.isPaused = false;
+        clearInterval(this.timer);
+        this.timer = setInterval(() => this.update(), this.speed);
+      }
+
+      stop() {
+        this.isRunning = false;
+        clearInterval(this.timer);
+      }
+
+      setDirection(dx, dy) {
+        if (!this.isRunning || this.isPaused) return;
+        // 防止反向直接咬死
+        if (this.dir.x + dx === 0 && this.dir.y + dy === 0) return;
+        this.nextDir = { x: dx, y: dy };
+      }
+
+      togglePause() {
+        if (!this.isRunning) return;
+        this.isPaused = !this.isPaused;
+      }
+
+      update() {
+        if (this.isPaused || !this.isRunning) return;
+
+        this.dir = { ...this.nextDir };
+        const head = { x: this.snake[0].x + this.dir.x, y: this.snake[0].y + this.dir.y };
+
+        // 撞牆判定 (街機模式：穿透或死亡，此處設定碰牆死亡增加挑戰性)
+        if (head.x < 0 || head.x >= this.tileCount || head.y < 0 || head.y >= this.tileCount) {
+          return this.handleGameOver();
+        }
+
+        // 撞到自己
+        if (this.snake.some(seg => seg.x === head.x && seg.y === head.y)) {
+          return this.handleGameOver();
+        }
+
+        this.snake.unshift(head);
+
+        // 吃到食物判定
+        if (head.x === this.food.x && head.y === this.food.y) {
+          this.score += 10;
+          retroAudio.playTone(880, 'square', 0.08, 0.08);
+          if (this.onScoreUpdate) this.onScoreUpdate(this.score);
+          this.food = this.spawnFood();
+          // 加速微調
+          if (this.score % 50 === 0 && this.speed > 50) {
+            this.speed -= 6;
+            clearInterval(this.timer);
+            this.timer = setInterval(() => this.update(), this.speed);
+          }
+        } else {
+          this.snake.pop();
+        }
+
+        this.render();
+      }
+
+      handleGameOver() {
+        this.isRunning = false;
+        clearInterval(this.timer);
+        retroAudio.playGameOver();
+        if (this.onGameOver) this.onGameOver(this.score);
+      }
+
+      render() {
+        const ctx = this.ctx;
+        // 背景繪製
+        ctx.fillStyle = '#05020c';
+        ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+        // 復古網格點陣
+        ctx.strokeStyle = '#1a0b33';
+        ctx.lineWidth = 1;
+        for (let i = 0; i <= this.canvas.width; i += this.gridSize) {
+          ctx.beginPath();
+          ctx.moveTo(i, 0); ctx.lineTo(i, this.canvas.height);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(0, i); ctx.lineTo(this.canvas.width, i);
+          ctx.stroke();
+        }
+
+        // 繪製像素食物 (閃爍霓虹紅/粉晶球)
+        ctx.fillStyle = '#ff007f';
+        ctx.shadowColor = '#ff007f';
+        ctx.shadowBlur = 8;
+        ctx.fillRect(
+          this.food.x * this.gridSize + 2,
+          this.food.y * this.gridSize + 2,
+          this.gridSize - 4,
+          this.gridSize - 4
+        );
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(this.food.x * this.gridSize + 4, this.food.y * this.gridSize + 4, 3, 3);
+        ctx.shadowBlur = 0;
+
+        // 繪製貪吃蛇身體
+        this.snake.forEach((seg, idx) => {
+          if (idx === 0) {
+            // 蛇頭
+            ctx.fillStyle = '#00f0ff';
+            ctx.shadowColor = '#00f0ff';
+            ctx.shadowBlur = 6;
+          } else {
+            // 蛇身漸變
+            ctx.fillStyle = idx % 2 === 0 ? '#39ff14' : '#2bd00f';
+            ctx.shadowBlur = 0;
+          }
+          ctx.fillRect(
+            seg.x * this.gridSize + 1,
+            seg.y * this.gridSize + 1,
+            this.gridSize - 2,
+            this.gridSize - 2
+          );
+        });
+        ctx.shadowBlur = 0;
+      }
+    }
+
+    /**
+     * 內建第二款遊戲：星際打磚塊 (Breakout Game)
+     */
+    class BreakoutGameEngine {
+      constructor(canvas, onScoreUpdate, onGameOver) {
+        this.canvas = canvas;
+        this.ctx = canvas.getContext('2d');
+        this.onScoreUpdate = onScoreUpdate;
+        this.onGameOver = onGameOver;
+        this.animId = null;
+        this.reset();
+      }
+
+      reset() {
+        this.canvas.width = 440;
+        this.canvas.height = 420;
+        this.score = 0;
+        this.lives = 3;
+        this.isRunning = false;
+        this.isPaused = false;
+
+        // 擋板
+        this.paddle = {
+          width: 75,
+          height: 10,
+          x: (this.canvas.width - 75) / 2,
+          y: this.canvas.height - 24,
+          speed: 6,
+          dx: 0
+        };
+
+        // 球
+        this.ball = {
+          x: this.canvas.width / 2,
+          y: this.canvas.height - 40,
+          radius: 5,
+          dx: 3 * (Math.random() > 0.5 ? 1 : -1),
+          dy: -3
+        };
+
+        // 磚塊陣列
+        this.brickRows = 5;
+        this.brickCols = 8;
+        this.brickWidth = 46;
+        this.brickHeight = 12;
+        this.brickPadding = 6;
+        this.brickOffsetTop = 40;
+        this.brickOffsetLeft = 14;
+
+        this.bricks = [];
+        const colors = ['#ff007f', '#ff6600', '#ffe600', '#39ff14', '#00f0ff'];
+        for (let r = 0; r < this.brickRows; r++) {
+          this.bricks[r] = [];
+          for (let c = 0; c < this.brickCols; c++) {
+            this.bricks[r][c] = {
+              x: c * (this.brickWidth + this.brickPadding) + this.brickOffsetLeft,
+              y: r * (this.brickHeight + this.brickPadding) + this.brickOffsetTop,
+              status: 1,
+              color: colors[r]
+            };
+          }
+        }
+
+        if (this.onScoreUpdate) this.onScoreUpdate(this.score, this.lives);
+      }
+
+      start() {
+        this.reset();
+        this.isRunning = true;
+        this.isPaused = false;
+        cancelAnimationFrame(this.animId);
+        this.loop = this.loop.bind(this);
+        this.animId = requestAnimationFrame(this.loop);
+      }
+
+      stop() {
+        this.isRunning = false;
+        cancelAnimationFrame(this.animId);
+      }
+
+      setPaddleMove(direction) {
+        if (!this.isRunning) return;
+        this.paddle.dx = direction * this.paddle.speed;
+      }
+
+      togglePause() {
+        if (!this.isRunning) return;
+        this.isPaused = !this.isPaused;
+        if (!this.isPaused) {
+          this.animId = requestAnimationFrame(this.loop);
+        }
+      }
+
+      loop() {
+        if (!this.isRunning) return;
+        if (!this.isPaused) {
+          this.update();
+          this.render();
+        }
+        if (this.isRunning) {
+          this.animId = requestAnimationFrame(this.loop);
+        }
+      }
+
+      update() {
+        // 移動擋板
+        this.paddle.x += this.paddle.dx;
+        if (this.paddle.x < 0) this.paddle.x = 0;
+        if (this.paddle.x + this.paddle.width > this.canvas.width) {
+          this.paddle.x = this.canvas.width - this.paddle.width;
+        }
+
+        // 移動球
+        this.ball.x += this.ball.dx;
+        this.ball.y += this.ball.dy;
+
+        // 碰左右牆反彈
+        if (this.ball.x + this.ball.radius > this.canvas.width || this.ball.x - this.ball.radius < 0) {
+          this.ball.dx = -this.ball.dx;
+          retroAudio.playTone(450, 'square', 0.03, 0.04);
+        }
+
+        // 碰頂部牆反彈
+        if (this.ball.y - this.ball.radius < 0) {
+          this.ball.dy = -this.ball.dy;
+          retroAudio.playTone(500, 'square', 0.03, 0.04);
+        }
+
+        // 碰擋板反彈
+        if (
+          this.ball.y + this.ball.radius >= this.paddle.y &&
+          this.ball.y - this.ball.radius <= this.paddle.y + this.paddle.height &&
+          this.ball.x >= this.paddle.x &&
+          this.ball.x <= this.paddle.x + this.paddle.width
+        ) {
+          // 根據命中位置計算反射角
+          const hitPoint = (this.ball.x - (this.paddle.x + this.paddle.width / 2)) / (this.paddle.width / 2);
+          this.ball.dx = hitPoint * 4.5;
+          this.ball.dy = -Math.abs(this.ball.dy);
+          retroAudio.playTone(620, 'square', 0.04, 0.06);
+        }
+
+        // 碰撞磚塊檢測
+        let remainingBricks = 0;
+        for (let r = 0; r < this.brickRows; r++) {
+          for (let c = 0; c < this.brickCols; c++) {
+            const b = this.bricks[r][c];
+            if (b.status === 1) {
+              remainingBricks++;
+              if (
+                this.ball.x > b.x &&
+                this.ball.x < b.x + this.brickWidth &&
+                this.ball.y > b.y &&
+                this.ball.y < b.y + this.brickHeight
+              ) {
+                this.ball.dy = -this.ball.dy;
+                b.status = 0;
+                this.score += 20;
+                retroAudio.playTone(750 + r * 60, 'square', 0.05, 0.07);
+                if (this.onScoreUpdate) this.onScoreUpdate(this.score, this.lives);
+              }
+            }
+          }
+        }
+
+        // 磚塊全消通關
+        if (remainingBricks === 0) {
+          this.isRunning = false;
+          retroAudio.playPowerup();
+          if (this.onGameOver) this.onGameOver(this.score, true);
+          return;
+        }
+
+        // 掉落底部
+        if (this.ball.y + this.ball.radius > this.canvas.height) {
+          this.lives--;
+          retroAudio.playTone(200, 'sawtooth', 0.15, 0.08);
+          if (this.onScoreUpdate) this.onScoreUpdate(this.score, this.lives);
+
+          if (this.lives <= 0) {
+            this.isRunning = false;
+            retroAudio.playGameOver();
+            if (this.onGameOver) this.onGameOver(this.score, false);
+          } else {
+            // 重設球位置繼續
+            this.ball.x = this.canvas.width / 2;
+            this.ball.y = this.canvas.height - 40;
+            this.ball.dx = 3 * (Math.random() > 0.5 ? 1 : -1);
+            this.ball.dy = -3;
+          }
+        }
+      }
+
+      render() {
+        const ctx = this.ctx;
+        ctx.fillStyle = '#060212';
+        ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+        // 繪製磚塊
+        for (let r = 0; r < this.brickRows; r++) {
+          for (let c = 0; c < this.brickCols; c++) {
+            const b = this.bricks[r][c];
+            if (b.status === 1) {
+              ctx.fillStyle = b.color;
+              ctx.fillRect(b.x, b.y, this.brickWidth, this.brickHeight);
+              // 磚塊像素高光
+              ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+              ctx.fillRect(b.x, b.y, this.brickWidth, 2);
+            }
+          }
+        }
+
+        // 繪製擋板
+        ctx.fillStyle = '#00f0ff';
+        ctx.shadowColor = '#00f0ff';
+        ctx.shadowBlur = 6;
+        ctx.fillRect(this.paddle.x, this.paddle.y, this.paddle.width, this.paddle.height);
+        ctx.shadowBlur = 0;
+
+        // 繪製球
+        ctx.fillStyle = '#ffe600';
+        ctx.beginPath();
+        ctx.arc(this.ball.x, this.ball.y, this.ball.radius, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  </script>
+
+  <script>
+    let activeGameEngine = null;
+    let currentLoadedGameId = null;
+
+    // 開啟街機模態視窗並載入遊戲
+    function launchGameById(gameId) {
+      const gameData = GAME_DATABASE.find(g => g.id === gameId);
+      if (!gameData) return;
+
+      currentLoadedGameId = gameId;
+      const modal = document.getElementById('arcadeModal');
+      const modalTitle = document.getElementById('modalGameTitle');
+      const canvasViewport = document.getElementById('canvasViewport');
+      const gameIframe = document.getElementById('gameIframe');
+      const canvas = document.getElementById('activeGameCanvas');
+      const hudScore = document.getElementById('hudScore');
+      const hudExtra = document.getElementById('hudExtra');
+      const overlay = document.getElementById('gameOverlay');
+
+      overlay.classList.add('hidden');
+      modalTitle.innerText = `[機台連線中] ${gameData.title}`;
+
+      // 停止現有執行器
+      if (activeGameEngine && activeGameEngine.stop) {
+        activeGameEngine.stop();
+      }
+
+      modal.classList.remove('hidden');
+
+      if (gameData.type === 'internal_snake') {
+        canvasViewport.classList.remove('hidden');
+        gameIframe.classList.add('hidden');
+        hudExtra.innerText = 'STATUS: ACTIVE';
+        
+        activeGameEngine = new SnakeGameEngine(
+          canvas,
+          (score) => {
+            hudScore.innerText = `SCORE: ${String(score).padStart(4, '0')}`;
+          },
+          (finalScore) => {
+            showGameOverModal(`GAME OVER`, `最終得分: ${finalScore}`);
+          }
+        );
+        activeGameEngine.start();
+
+      } else if (gameData.type === 'internal_breakout') {
+        canvasViewport.classList.remove('hidden');
+        gameIframe.classList.add('hidden');
+        
+        activeGameEngine = new BreakoutGameEngine(
+          canvas,
+          (score, lives) => {
+            hudScore.innerText = `SCORE: ${String(score).padStart(4, '0')}`;
+            hudExtra.innerText = `LIVES: ${'♥'.repeat(Math.max(0, lives))}`;
+          },
+          (finalScore, isWin) => {
+            showGameOverModal(
+              isWin ? 'STAGE CLEAR !!' : 'GAME OVER', 
+              `總分: ${finalScore}`
+            );
+          }
+        );
+        activeGameEngine.start();
+
+      } else if (gameData.type === 'iframe_src' || gameData.type === 'html_raw') {
+        // 【後續合併架構】：接收獨立 game.html 注入運行
+        canvasViewport.classList.add('hidden');
+        gameIframe.classList.remove('hidden');
+        if (gameData.htmlSource) {
+          gameIframe.srcdoc = gameData.htmlSource;
+        } else if (gameData.url) {
+          gameIframe.src = gameData.url;
+        }
+      }
+    }
+
+    // 關閉街機視窗
+    function closeArcadeModal() {
+      retroAudio.playClick();
+      if (activeGameEngine && activeGameEngine.stop) {
+        activeGameEngine.stop();
+      }
+      const gameIframe = document.getElementById('gameIframe');
+      gameIframe.srcdoc = '';
+      gameIframe.src = 'about:blank';
+      document.getElementById('arcadeModal').classList.add('hidden');
+    }
+
+    // 重開當前遊戲
+    function restartCurrentGame() {
+      retroAudio.playCoin();
+      document.getElementById('gameOverlay').classList.add('hidden');
+      if (activeGameEngine && activeGameEngine.start) {
+        activeGameEngine.start();
+      } else if (currentLoadedGameId) {
+        launchGameById(currentLoadedGameId);
+      }
+    }
+
+    // 顯示遊戲結束畫面
+    function showGameOverModal(title, subtitle) {
+      const overlay = document.getElementById('gameOverlay');
+      document.getElementById('overlayTitle').innerText = title;
+      document.getElementById('overlaySubtitle').innerText = subtitle;
+      overlay.classList.remove('hidden');
+    }
+
+    // 全螢幕切換
+    function toggleModalFullscreen() {
+      retroAudio.playClick();
+      const modal = document.querySelector('#arcadeModal > div');
+      if (!document.fullscreenElement) {
+        if (modal.requestFullscreen) modal.requestFullscreen();
+      } else {
+        if (document.exitFullscreen) document.exitFullscreen();
+      }
+    }
+
+    // 鍵盤操作監聽 (支援桌機的方向鍵與空白鍵)
+    window.addEventListener('keydown', (e) => {
+      if (!activeGameEngine || !activeGameEngine.isRunning) return;
+
+      // 貪吃蛇控制
+      if (activeGameEngine instanceof SnakeGameEngine) {
+        if (['ArrowUp', 'KeyW'].includes(e.code)) { activeGameEngine.setDirection(0, -1); e.preventDefault(); }
+        if (['ArrowDown', 'KeyS'].includes(e.code)) { activeGameEngine.setDirection(0, 1); e.preventDefault(); }
+        if (['ArrowLeft', 'KeyA'].includes(e.code)) { activeGameEngine.setDirection(-1, 0); e.preventDefault(); }
+        if (['ArrowRight', 'KeyD'].includes(e.code)) { activeGameEngine.setDirection(1, 0); e.preventDefault(); }
+        if (['KeyP', 'Space'].includes(e.code)) { activeGameEngine.togglePause(); e.preventDefault(); }
+      }
+
+      // 打磚塊控制
+      if (activeGameEngine instanceof BreakoutGameEngine) {
+        if (['ArrowLeft', 'KeyA'].includes(e.code)) { activeGameEngine.setPaddleMove(-1); e.preventDefault(); }
+        if (['ArrowRight', 'KeyD'].includes(e.code)) { activeGameEngine.setPaddleMove(1); e.preventDefault(); }
+        if (['KeyP'].includes(e.code)) { activeGameEngine.togglePause(); e.preventDefault(); }
+      }
+    });
+
+    window.addEventListener('keyup', (e) => {
+      if (!activeGameEngine || !activeGameEngine.isRunning) return;
+      if (activeGameEngine instanceof BreakoutGameEngine) {
+        if (['ArrowLeft', 'ArrowRight', 'KeyA', 'KeyD'].includes(e.code)) {
+          activeGameEngine.setPaddleMove(0);
+        }
+      }
+    });
+
+    // 虛擬觸控按鈕分派 (支援手機觸控螢幕操控)
+    function handleVirtualKey(key, isPressed) {
+      retroAudio.playClick();
+      if (!activeGameEngine) return;
+
+      if (activeGameEngine instanceof SnakeGameEngine && isPressed) {
+        if (key === 'ArrowUp') activeGameEngine.setDirection(0, -1);
+        if (key === 'ArrowDown') activeGameEngine.setDirection(0, 1);
+        if (key === 'ArrowLeft') activeGameEngine.setDirection(-1, 0);
+        if (key === 'ArrowRight') activeGameEngine.setDirection(1, 0);
+        if (key === 'KeyP' || key === 'Space') activeGameEngine.togglePause();
+      }
+
+      if (activeGameEngine instanceof BreakoutGameEngine) {
+        if (key === 'ArrowLeft') activeGameEngine.setPaddleMove(isPressed ? -1 : 0);
+        if (key === 'ArrowRight') activeGameEngine.setPaddleMove(isPressed ? 1 : 0);
+        if (key === 'KeyP' && isPressed) activeGameEngine.togglePause();
+      }
+    }
+
+    // 輔助功能切換：CRT 濾鏡開關
+    function toggleCrt() {
+      retroAudio.playClick();
+      const crt = document.getElementById('crtOverlay');
+      const text = document.getElementById('crtStatusText');
+      const isOff = crt.classList.toggle('disabled');
+      text.innerText = isOff ? '關' : '開';
+    }
+
+    // 輔助功能切換：8-Bit 音效開關
+    function toggleAudio() {
+      retroAudio.muted = !retroAudio.muted;
+      const text = document.getElementById('audioStatusText');
+      const icon = document.getElementById('audioIcon');
+      if (retroAudio.muted) {
+        text.innerText = '關';
+        icon.className = 'fa-solid fa-volume-xmark text-xs';
+      } else {
+        text.innerText = '開';
+        icon.className = 'fa-solid fa-volume-high text-xs';
+        retroAudio.playTone(660, 'square', 0.08);
+      }
+    }
+
+    // 投幣功能
+    function insertCoin() {
+      retroAudio.playCoin();
+      const coinEl = document.getElementById('coinCount');
+      let current = parseInt(coinEl.innerText, 10) || 0;
+      current += 1;
+      coinEl.innerText = current;
+
+      // 觸發視覺小晃動效果
+      coinEl.classList.add('text-white');
+      setTimeout(() => coinEl.classList.remove('text-white'), 180);
+    }
+
+    // 平滑滾動至遊戲區
+    function scrollToGames() {
+      document.getElementById('games').scrollIntoView({ behavior: 'smooth' });
+    }
+  </script>
+
+  <script>
+    // 英雄機台展示框動態像素背景
+    function initHeroCabinetCanvas() {
+      const canvas = document.getElementById('heroHeroCanvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      canvas.width = 300;
+      canvas.height = 180;
+
+      const particles = Array.from({ length: 28 }, () => ({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        size: Math.random() * 4 + 2,
+        speed: Math.random() * 0.8 + 0.3,
+        color: ['#00f0ff', '#ff007f', '#ffe600', '#39ff14'][Math.floor(Math.random() * 4)]
+      }));
+
+      function anim() {
+        ctx.fillStyle = 'rgba(2, 2, 10, 0.25)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        particles.forEach(p => {
+          ctx.fillStyle = p.color;
+          ctx.fillRect(p.x, p.y, p.size, p.size);
+          p.y -= p.speed;
+          if (p.y < -10) {
+            p.y = canvas.height + 5;
+            p.x = Math.random() * canvas.width;
+          }
+        });
+        requestAnimationFrame(anim);
+      }
+      anim();
+    }
+
+    // 頁面初次載入啟動程序
+    window.addEventListener('DOMContentLoaded', () => {
+      renderGameCards('all');
+      initHeroCabinetCanvas();
+
+      // 更新首頁計數徽章
+      const countEl = document.getElementById('countAll');
+      if (countEl) countEl.innerText = GAME_DATABASE.length;
+      const totalEl = document.getElementById('statTotalGames');
+      if (totalEl) totalEl.innerText = `${String(GAME_DATABASE.length).padStart(2, '0')} 款`;
+    });
+  </script>
+</body>
+</html>
