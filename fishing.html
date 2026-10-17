@@ -1,0 +1,2032 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>悠閒海灣：像素休閒釣魚物語</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+    }
+    :root {
+      --bg-dark: #090d16;
+      --panel-bg: rgba(15, 23, 42, 0.95);
+      --gold: #f59e0b;
+      --gold-light: #fef3c7;
+      --accent: #38bdf8;
+      --green-soft: #22c55e;
+      --pixel-font: "Courier New", Courier, monospace;
+    }
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: var(--bg-dark);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      color: #f8fafc;
+    }
+    #game-container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background: #000;
+    }
+    #viewport-wrapper {
+      position: relative;
+      flex: 1;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+    canvas#gameCanvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
+    .top-bar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 56px;
+      padding: 6px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: linear-gradient(180deg, rgba(15,23,42,0.92) 0%, rgba(15,23,42,0) 100%);
+      z-index: 20;
+      pointer-events: none;
+    }
+    .hud-left, .hud-right {
+      pointer-events: auto;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn-pixel {
+      background: #1e293b;
+      color: #f8fafc;
+      border: 2px solid #64748b;
+      border-radius: 8px;
+      padding: 6px 12px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 4px 0 #0f172a;
+      transition: all 0.08s ease;
+      text-decoration: none;
+    }
+    .btn-pixel:active {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0 #0f172a;
+    }
+    .btn-pixel.gold {
+      background: #b45309;
+      border-color: #fbbf24;
+      color: #fef3c7;
+    }
+    .btn-pixel.cyan {
+      background: #0369a1;
+      border-color: #38bdf8;
+      color: #e0f2fe;
+    }
+    .btn-pixel.danger {
+      background: #991b1b;
+      border-color: #f87171;
+      color: #fee2e2;
+    }
+    .badge-gold {
+      background: rgba(245, 158, 11, 0.22);
+      border: 1px solid #f59e0b;
+      color: #fbbf24;
+      padding: 5px 12px;
+      border-radius: 6px;
+      font-weight: 800;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .modal-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(5, 10, 20, 0.82);
+      backdrop-filter: blur(5px);
+      z-index: 50;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 12px;
+    }
+    .modal-backdrop.active {
+      display: flex;
+    }
+    .pixel-box {
+      background: #111827;
+      border: 3px solid #475569;
+      border-radius: 12px;
+      width: 100%;
+      max-width: 720px;
+      max-height: 88vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 16px 36px rgba(0,0,0,0.7), inset 0 0 16px rgba(255,255,255,0.04);
+      color: #f3f4f6;
+      animation: popIn 0.16s ease-out;
+    }
+    @keyframes popIn {
+      from { transform: scale(0.94); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 18px;
+      border-bottom: 2px solid #374151;
+      background: #1f2937;
+      border-radius: 9px 9px 0 0;
+    }
+    .modal-header h2 {
+      font-size: 17px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .modal-close {
+      background: none;
+      border: none;
+      color: #9ca3af;
+      font-size: 22px;
+      font-weight: bold;
+      cursor: pointer;
+      padding: 2px 8px;
+    }
+    .modal-close:hover { color: #fff; }
+    .modal-tabs {
+      display: flex;
+      background: #111827;
+      border-bottom: 1px solid #374151;
+      overflow-x: auto;
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 11px 8px;
+      background: none;
+      border: none;
+      color: #94a3b8;
+      font-weight: bold;
+      font-size: 13px;
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      white-space: nowrap;
+      text-align: center;
+    }
+    .tab-btn.active {
+      color: #38bdf8;
+      border-bottom-color: #38bdf8;
+      background: rgba(56, 189, 248, 0.08);
+    }
+    .modal-body {
+      padding: 14px;
+      overflow-y: auto;
+      flex: 1;
+    }
+    .grid-items {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+      gap: 10px;
+    }
+    .card-item {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .card-item.equipped {
+      border-color: #22c55e;
+      background: rgba(34, 197, 94, 0.08);
+    }
+    .rarity-tag {
+      font-size: 11px;
+      font-weight: 800;
+      padding: 2px 6px;
+      border-radius: 4px;
+      align-self: flex-start;
+    }
+    #minigame-container {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 92%;
+      max-width: 460px;
+      background: rgba(15, 23, 42, 0.98);
+      border: 3px solid #38bdf8;
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 14px 40px rgba(0, 0, 0, 0.85), 0 0 25px rgba(56, 189, 248, 0.35);
+      z-index: 40;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      text-align: center;
+    }
+    .minigame-header {
+      font-size: 19px;
+      font-weight: 800;
+      color: #38bdf8;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .minigame-badge {
+      font-size: 11px;
+      background: rgba(34, 197, 94, 0.2);
+      border: 1px solid #22c55e;
+      color: #4ade80;
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin-left: 6px;
+    }
+    .minigame-prompt {
+      font-size: 13px;
+      color: #cbd5e1;
+      margin-bottom: 4px;
+    }
+    .bar-outer {
+      width: 100%;
+      height: 32px;
+      background: #020617;
+      border: 2px solid #475569;
+      border-radius: 8px;
+      position: relative;
+      overflow: hidden;
+    }
+    .bar-inner {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #22c55e, #10b981);
+      transition: width 0.05s linear;
+    }
+    #mobile-controls {
+      display: none;
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 98px;
+      background: linear-gradient(0deg, rgba(15,23,42,0.95) 0%, rgba(15,23,42,0.45) 75%, transparent 100%);
+      z-index: 25;
+      padding: 10px 16px 14px 16px;
+      justify-content: space-between;
+      align-items: center;
+      pointer-events: none;
+    }
+    .d-pad, .action-pad {
+      pointer-events: auto;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    .touch-btn {
+      width: 62px;
+      height: 62px;
+      border-radius: 12px;
+      background: #1e293b;
+      border: 2px solid #64748b;
+      color: #f8fafc;
+      font-size: 20px;
+      font-weight: 800;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 4px 0 #0f172a;
+    }
+    .touch-btn:active, .touch-btn.pressed {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0 #0f172a;
+      background: #334155;
+    }
+    .touch-btn.main-action {
+      width: 96px;
+      background: #0284c7;
+      border-color: #38bdf8;
+      font-size: 15px;
+    }
+    .touch-btn span.label {
+      font-size: 10px;
+      font-weight: normal;
+      color: #94a3b8;
+    }
+    #catch-celebration {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 88%;
+      max-width: 420px;
+      background: #0f172a;
+      border: 3px solid #fbbf24;
+      border-radius: 16px;
+      padding: 22px;
+      box-shadow: 0 0 40px rgba(245, 158, 11, 0.45);
+      z-index: 60;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 12px;
+      animation: popIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    .fishdex-card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 8px 10px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .fishdex-card.locked {
+      opacity: 0.42;
+      filter: grayscale(1);
+    }
+    @media (pointer: coarse) or (max-width: 768px) {
+      #mobile-controls {
+        display: flex;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="game-container">
+    <!-- Top HUD Bar -->
+    <div class="top-bar">
+      <div class="hud-left">
+        <a href="index.html" class="btn-pixel cyan">← 回首頁</a>
+        <div class="badge-gold">💰 <span id="hud-coins">0</span></div>
+        <div class="btn-pixel" id="hud-bait-info" style="font-size:12px;">🪱 麵包屑 ×<span id="hud-bait-count">∞</span></div>
+      </div>
+      <div class="hud-right">
+        <button class="btn-pixel" id="btn-open-bag">🎒 背包 (<span id="hud-bag-count">0</span>)</button>
+        <button class="btn-pixel" id="btn-open-dex">📖 圖鑑 (<span id="hud-dex-count">0/70</span>)</button>
+        <button class="btn-pixel" id="btn-sound-toggle">🔊 音效</button>
+        <button class="btn-pixel danger" id="btn-reset-game">🔄 重新開始</button>
+      </div>
+    </div>
+
+    <!-- Canvas Game Viewport -->
+    <div id="viewport-wrapper">
+      <canvas id="gameCanvas"></canvas>
+    </div>
+
+    <!-- Bottom Mobile Touch Controls -->
+    <div id="mobile-controls">
+      <div class="d-pad">
+        <button class="touch-btn" id="m-btn-left">◀<span class="label">向左走</span></button>
+        <button class="touch-btn" id="m-btn-right">▶<span class="label">向右走</span></button>
+      </div>
+      <div class="action-pad">
+        <button class="touch-btn" id="m-btn-interact" style="background:#065f46; border-color:#34d399;">💬<span class="label">對話/店</span></button>
+        <button class="touch-btn main-action" id="m-btn-action">🎣 拋竿<span class="label">點擊起線</span></button>
+      </div>
+    </div>
+
+    <div class="modal-backdrop" id="modal-shop">
+      <div class="pixel-box">
+        <div class="modal-header">
+          <h2>🏪 漁村老商人的小棧</h2>
+          <button class="modal-close" data-close="modal-shop">&times;</button>
+        </div>
+        <div class="modal-tabs">
+          <button class="tab-btn active" data-tab="shop-sell">💰 魚獲收購</button>
+          <button class="tab-btn" data-tab="shop-bait">🪱 誘餌工坊</button>
+          <button class="tab-btn" data-tab="shop-rod">🎣 釣竿工藝</button>
+        </div>
+        <div class="modal-body">
+          <div id="shop-sell-pane">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; padding:8px 12px; background:#1e293b; border-radius:6px;">
+              <div>背包總魚獲：<span id="shop-fish-count">0</span> 條</div>
+              <button class="btn-pixel gold" id="btn-sell-all">💰 一鍵出售所有魚獲</button>
+            </div>
+            <div id="shop-fish-list" class="grid-items"></div>
+          </div>
+          <div id="shop-bait-pane" style="display:none;" class="grid-items"></div>
+          <div id="shop-rod-pane" style="display:none;" class="grid-items"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-backdrop" id="modal-bag">
+      <div class="pixel-box">
+        <div class="modal-header">
+          <h2>🎒 我的無底水產背包 (<span id="bag-total-count">0</span> 條魚)</h2>
+          <button class="modal-close" data-close="modal-bag">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div id="bag-fish-list" class="grid-items"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-backdrop" id="modal-dex">
+      <div class="pixel-box" style="max-width: 820px;">
+        <div class="modal-header">
+          <h2>📖 悠閒海灣魚類大百科 (<span id="dex-collected-text">0/70</span>)</h2>
+          <button class="modal-close" data-close="modal-dex">&times;</button>
+        </div>
+        <div class="modal-tabs" id="dex-filter-tabs">
+          <button class="tab-btn active" data-rarity="all">全部 (70)</button>
+          <button class="tab-btn" data-rarity="common">普通 (10)</button>
+          <button class="tab-btn" data-rarity="uncommon">罕見 (10)</button>
+          <button class="tab-btn" data-rarity="rare">稀有 (10)</button>
+          <button class="tab-btn" data-rarity="epic">史詩 (10)</button>
+          <button class="tab-btn" data-rarity="legendary">傳說 (10)</button>
+          <button class="tab-btn" data-rarity="mythic">神話 (10)</button>
+          <button class="tab-btn" data-rarity="ancient">遠古 (10)</button>
+        </div>
+        <div class="modal-body">
+          <div id="dex-fish-list" class="grid-items"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="minigame-container">
+      <div class="minigame-header">
+        <span id="mg-title">🎯 咬鉤掙扎中！</span>
+        <span class="minigame-badge">☕ 超休閒養老模式</span>
+      </div>
+      <div class="minigame-prompt" id="mg-desc">請操作按鍵進行對抗</div>
+      <div id="mg-stage-area" style="width:100%; display:flex; flex-direction:column; align-items:center; gap:10px;"></div>
+      <div style="font-size:12px; color:#94a3b8;" id="mg-hint">電腦: [空白鍵] 或 [方向鍵] | 手機: 點擊下方專屬按鈕</div>
+      <div id="mg-touch-actions" style="display:flex; gap:10px; margin-top:6px; width:100%; justify-content:center;"></div>
+    </div>
+
+    <!-- Catch Celebration Modal -->
+    <div id="catch-celebration">
+      <div style="font-size:24px; font-weight:800; color:#fbbf24;">✨ 悠閒捕獲！大收穫 ✨</div>
+      <canvas id="catchCanvas" width="96" height="72" style="image-rendering:pixelated; background:#1e293b; border-radius:10px; border:2px solid #64748b;"></canvas>
+      <div style="font-size:20px; font-weight:800;" id="catch-fish-name">神秘魚</div>
+      <div class="rarity-tag" id="catch-fish-rarity">稀有度</div>
+      <div style="font-size:13px; color:#94a3b8;" id="catch-fish-specs">長度: 0cm | 價值: 0 金幣</div>
+      <div style="font-size:12px; color:#cbd5e1; background:rgba(255,255,255,0.06); padding:8px 12px; border-radius:6px; line-height:1.5;" id="catch-fish-desc">介紹</div>
+      <button class="btn-pixel gold" id="btn-collect-fish" style="width:100%; padding:12px; justify-content:center; font-size:15px;">收入無底背包 🎒</button>
+    </div>
+
+    <!-- Reset Confirmation Modal -->
+    <div class="modal-backdrop" id="modal-reset-confirm">
+      <div class="pixel-box" style="max-width:380px; text-align:center; padding:22px;">
+        <h3 style="color:#f87171; margin-bottom:10px; font-size:18px;">⚠️ 確定要重新開始嗎？</h3>
+        <p style="font-size:13px; color:#cbd5e1; margin-bottom:18px; line-height:1.5;">
+          這將清空所有金幣、釣竿升級與 70 種魚圖鑑紀錄，回到最一開始的竹竿重溫悠閒釣魚！
+        </p>
+        <div style="display:flex; justify-content:center; gap:12px;">
+          <button class="btn-pixel" data-close="modal-reset-confirm">取消保留</button>
+          <button class="btn-pixel danger" id="btn-confirm-reset">確認重新開始</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const Sound = (() => {
+      let ctx = null;
+      let muted = false;
+
+      function getContext() {
+        if (!ctx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          if (AudioContext) ctx = new AudioContext();
+        }
+        if (ctx && ctx.state === 'suspended') {
+          ctx.resume();
+        }
+        return ctx;
+      }
+
+      function playTone(freq, type = 'sine', duration = 0.15, volume = 0.08) {
+        if (muted) return;
+        const ac = getContext();
+        if (!ac) return;
+        try {
+          const osc = ac.createOscillator();
+          const gain = ac.createGain();
+          osc.type = type;
+          osc.frequency.setValueAtTime(freq, ac.currentTime);
+          gain.gain.setValueAtTime(volume, ac.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + duration);
+          osc.connect(gain);
+          gain.connect(ac.destination);
+          osc.start();
+          osc.stop(ac.currentTime + duration);
+        } catch(e){}
+      }
+
+      return {
+        toggleMute() {
+          muted = !muted;
+          return muted;
+        },
+        isMuted() { return muted; },
+        cast() {
+          if (muted) return;
+          const ac = getContext();
+          if (!ac) return;
+          try {
+            const osc = ac.createOscillator();
+            const gain = ac.createGain();
+            osc.frequency.setValueAtTime(320, ac.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(120, ac.currentTime + 0.22);
+            gain.gain.setValueAtTime(0.1, ac.currentTime);
+            gain.gain.linearRampToValueAtTime(0.001, ac.currentTime + 0.22);
+            osc.connect(gain);
+            gain.connect(ac.destination);
+            osc.start();
+            osc.stop(ac.currentTime + 0.22);
+          } catch(e){}
+        },
+        bite() {
+          playTone(660, 'sine', 0.1, 0.12);
+          setTimeout(() => playTone(990, 'sine', 0.18, 0.14), 80);
+        },
+        coin() {
+          playTone(987.77, 'triangle', 0.08, 0.1);
+          setTimeout(() => playTone(1318.51, 'triangle', 0.14, 0.1), 70);
+        },
+        fanfare() {
+          const notes = [523.25, 659.25, 783.99, 1046.50];
+          notes.forEach((freq, idx) => {
+            setTimeout(() => playTone(freq, 'triangle', 0.2, 0.12), idx * 80);
+          });
+        },
+        fail() {
+          playTone(220, 'sine', 0.2, 0.08);
+        },
+        tick() {
+          playTone(520, 'sine', 0.05, 0.04);
+        }
+      };
+    })();
+
+    const RARITY_INFO = {
+      common: { name: '普通', color: '#86e016', weight: 60 },
+      uncommon: { name: '罕見', color: '#22c55e', weight: 25 },
+      rare: { name: '稀有', color: '#38bdf8', weight: 10 },
+      epic: { name: '史詩', color: '#a855f7', weight: 4 },
+      legendary: { name: '傳說', color: '#eab308', weight: 1 },
+      mythic: { name: '神話', color: '#ef4444', weight: 0.3 },
+      ancient: { name: '遠古', color: '#ec4899', weight: 0.1 }
+    };
+
+    // Full 70 Fish database (7 Rarities x 10 Fish each = 70 Fish)
+    const FISH_DATABASE = [
+      // 1. Common (10)
+      { id: 'c1', name: '小鯽魚', rarity: 'common', basePrice: 15, minLen: 8, maxLen: 18, desc: '淡水岸邊最常見的小魚，性情溫和好釣。', color: '#9ca3af', finColor: '#6b7280' },
+      { id: 'c2', name: '泥鰍', rarity: 'common', basePrice: 18, minLen: 6, maxLen: 15, desc: '喜歡在淺灘泥沙中嬉戲，身體滑溜無比。', color: '#78716c', finColor: '#57534e' },
+      { id: 'c3', name: '溪哥', rarity: 'common', basePrice: 20, minLen: 7, maxLen: 16, desc: '清澈水域常見的小型魚，動作輕盈活潑。', color: '#38bdf8', finColor: '#0284c7' },
+      { id: 'c4', name: '小丑魚', rarity: 'common', basePrice: 24, minLen: 5, maxLen: 12, desc: '橙白斑紋相間的可愛小魚，喜歡海葵花叢。', color: '#fb923c', finColor: '#ffffff' },
+      { id: 'c5', name: '沙丁魚', rarity: 'common', basePrice: 22, minLen: 10, maxLen: 22, desc: '成群結隊游動的銀光小魚，常做成美味點心。', color: '#cbd5e1', finColor: '#94a3b8' },
+      { id: 'c6', name: '羅非魚', rarity: 'common', basePrice: 25, minLen: 15, maxLen: 32, desc: '生命力極強的慈鯛，哪裡有水哪裡就有牠。', color: '#64748b', finColor: '#475569' },
+      { id: 'c7', name: '小草魚', rarity: 'common', basePrice: 28, minLen: 20, maxLen: 45, desc: '特別貪吃的小型草魚，胃口永遠填不滿。', color: '#a3e635', finColor: '#65a30d' },
+      { id: 'c8', name: '白條魚', rarity: 'common', basePrice: 16, minLen: 9, maxLen: 17, desc: '體態修長優雅，在陽光下閃爍著微銀光芒。', color: '#f1f5f9', finColor: '#cbd5e1' },
+      { id: 'c9', name: '青鱂魚', rarity: 'common', basePrice: 18, minLen: 4, maxLen: 8, desc: '體積嬌小宛如水中精靈，非常溫馴易親近。', color: '#67e8f9', finColor: '#06b6d4' },
+      { id: 'c10', name: '大眼金魚', rarity: 'common', basePrice: 30, minLen: 6, maxLen: 14, desc: '圓滾滾的大眼睛，游動時呆萌討喜。', color: '#f97316', finColor: '#fdba74' },
+
+      // 2. Uncommon (10)
+      { id: 'u1', name: '海鱸魚', rarity: 'uncommon', basePrice: 55, minLen: 25, maxLen: 60, desc: '沿海常見的肉食魚，咬鉤沉穩有力。', color: '#4ade80', finColor: '#16a34a' },
+      { id: 'u2', name: '黑鯛', rarity: 'uncommon', basePrice: 65, minLen: 20, maxLen: 48, desc: '穿梭於礁石間的頑強小黑魚，肉質緊實。', color: '#475569', finColor: '#1e293b' },
+      { id: 'u3', name: '鱒魚', rarity: 'uncommon', basePrice: 70, minLen: 22, maxLen: 55, desc: '喜愛清冽甘甜的水源，體側長有粉紅斑。', color: '#f472b6', finColor: '#db2777' },
+      { id: 'u4', name: '竹莢魚', rarity: 'uncommon', basePrice: 50, minLen: 15, maxLen: 30, desc: '鱗片帶有翠綠微光，是燒烤店的熱門招牌。', color: '#2dd4bf', finColor: '#0f766e' },
+      { id: 'u5', name: '秋刀魚', rarity: 'uncommon', basePrice: 58, minLen: 28, maxLen: 42, desc: '身如一把雪亮短刀，秋天特別肥美。', color: '#38bdf8', finColor: '#1e3a8a' },
+      { id: 'u6', name: '紅衫魚', rarity: 'uncommon', basePrice: 66, minLen: 18, maxLen: 35, desc: '身披喜慶嫣紅色彩，在水中十分亮眼。', color: '#fb7185', finColor: '#e11d48' },
+      { id: 'u7', name: '花斑石斑', rarity: 'uncommon', basePrice: 80, minLen: 30, maxLen: 70, desc: '底層礁石小霸王，喜歡把釣餌叼回洞穴。', color: '#a1a1aa', finColor: '#52525b' },
+      { id: 'u8', name: '大黃魚', rarity: 'uncommon', basePrice: 75, minLen: 20, maxLen: 40, desc: '通體金黃耀眼，具有極高的市集收購身價。', color: '#facc15', finColor: '#ca8a04' },
+      { id: 'u9', name: '比目魚', rarity: 'uncommon', basePrice: 72, minLen: 25, maxLen: 50, desc: '平貼在淺海沙灘底部的擬態大師。', color: '#a8a29e', finColor: '#78716c' },
+      { id: 'u10', name: '白鬍鯰魚', rarity: 'uncommon', basePrice: 85, minLen: 35, maxLen: 85, desc: '生有長長觸鬚，喜歡在安靜黃昏出沒。', color: '#71717a', finColor: '#3f3f46' },
+
+      // 3. Rare (10)
+      { id: 'r1', name: '大西洋鮭魚', rarity: 'rare', basePrice: 160, minLen: 50, maxLen: 110, desc: '逆流而上的勇者，肉質鮮美油脂豐厚。', color: '#fb923c', finColor: '#ea580c' },
+      { id: 'r2', name: '黃鰭金槍魚', rarity: 'rare', basePrice: 210, minLen: 60, maxLen: 140, desc: '海洋中的極速游俠，身形如流線魚雷。', color: '#0284c7', finColor: '#eab308' },
+      { id: 'r3', name: '藍紋旗魚', rarity: 'rare', basePrice: 260, minLen: 80, maxLen: 220, desc: '擁有尖銳如長矛的吻部，氣勢威風堂堂。', color: '#2563eb', finColor: '#1d4ed8' },
+      { id: 'r4', name: '高壓電鰻', rarity: 'rare', basePrice: 190, minLen: 60, maxLen: 130, desc: '體表儲備著微弱電流，碰觸會帶來酥麻感。', color: '#eab308', finColor: '#ca8a04' },
+      { id: 'r5', name: '七彩虹鱒', rarity: 'rare', basePrice: 180, minLen: 35, maxLen: 75, desc: '在月光下會折射出如彩虹般絢麗的鱗斑。', color: '#ec4899', finColor: '#a855f7' },
+      { id: 'r6', name: '巨骨舌魚', rarity: 'rare', basePrice: 290, minLen: 100, maxLen: 250, desc: '原始淡水巨魚，覆蓋著堅如鎧甲的大鱗片。', color: '#b91c1c', finColor: '#7f1d1d' },
+      { id: 'r7', name: '虎斑鴨嘴', rarity: 'rare', basePrice: 220, minLen: 50, maxLen: 120, desc: '擁有如猛虎般的條紋，扁平鴨嘴造型奇特。', color: '#d97706', finColor: '#92400e' },
+      { id: 'r8', name: '銀羽飛魚', rarity: 'rare', basePrice: 175, minLen: 20, maxLen: 45, desc: '生有長若羽翼的胸鰭，能飛掠海面數十米。', color: '#38bdf8', finColor: '#bae6fd' },
+      { id: 'r9', name: '夜光鮟鱇', rarity: 'rare', basePrice: 250, minLen: 30, maxLen: 70, desc: '頭頂懸掛著暖光小燈籠，在深水區溫柔發亮。', color: '#6366f1', finColor: '#4338ca' },
+      { id: 'r10', name: '紅龍魚', rarity: 'rare', basePrice: 320, minLen: 40, maxLen: 90, desc: '象徵吉祥與富貴的名貴觀賞魚，雍容大氣。', color: '#dc2626', finColor: '#991b1b' },
+
+      // 4. Epic (10)
+      { id: 'e1', name: '深海幻光鰻', rarity: 'epic', basePrice: 560, minLen: 90, maxLen: 180, desc: '通體散發幽靜藍紫光芒，宛若深海落下的流星。', color: '#818cf8', finColor: '#c084fc' },
+      { id: 'e2', name: '翡翠錦鯉', rarity: 'epic', basePrice: 600, minLen: 45, maxLen: 90, desc: '如同整塊溫潤和田翡翠雕琢而成，福澤深厚。', color: '#10b981', finColor: '#059669' },
+      { id: 'e3', name: '水晶水母魚', rarity: 'epic', basePrice: 630, minLen: 30, maxLen: 65, desc: '半透明如果凍般的身軀，體內流動著微光星塵。', color: '#a5f3fc', finColor: '#67e8f9' },
+      { id: 'e4', name: '熔岩火鱗鯛', rarity: 'epic', basePrice: 680, minLen: 50, maxLen: 100, desc: '體表如同地心滾燙岩漿，捧在手心微溫暖心。', color: '#f97316', finColor: '#b91c1c' },
+      { id: 'e5', name: '極地冰晶魚', rarity: 'epic', basePrice: 650, minLen: 40, maxLen: 85, desc: '血液澄澈透明，游動時會帶起輕巧雪花光環。', color: '#e0f2fe', finColor: '#38bdf8' },
+      { id: 'e6', name: '黃金真龍魚', rarity: 'epic', basePrice: 780, minLen: 60, maxLen: 120, desc: '純金鎧甲般的厚重金鱗，華貴氣質無與倫比。', color: '#facc15', finColor: '#ca8a04' },
+      { id: 'e7', name: '紫晶海馬龍', rarity: 'epic', basePrice: 720, minLen: 25, maxLen: 55, desc: '長滿紫水晶般的珊瑚尖刺，在水中曼妙起舞。', color: '#c084fc', finColor: '#7e22ce' },
+      { id: 'e8', name: '幽靈蝠鱝', rarity: 'epic', basePrice: 760, minLen: 120, maxLen: 260, desc: '如同一張黑色魔毯在波濤間翱翔，安靜典雅。', color: '#64748b', finColor: '#38bdf8' },
+      { id: 'e9', name: '星空雀鯛', rarity: 'epic', basePrice: 620, minLen: 20, maxLen: 40, desc: '深藍身軀點綴著無數細微碎鑽，宛如縮小版星河。', color: '#1e1b4b', finColor: '#f43f5e' },
+      { id: 'e10', name: '深淵巨口魚', rarity: 'epic', basePrice: 820, minLen: 70, maxLen: 150, desc: '生活在大海溝中的長壽魚種，模樣威嚴憨厚。', color: '#334155', finColor: '#0f172a' },
+
+      // 5. Legendary (10)
+      { id: 'l1', name: '利維坦幼體', rarity: 'legendary', basePrice: 1500, minLen: 150, maxLen: 380, desc: '傳說海怪利維坦的子嗣，呼吸間帶著浪潮共鳴。', color: '#0284c7', finColor: '#0369a1' },
+      { id: 'l2', name: '蒼藍海龍', rarity: 'legendary', basePrice: 1750, minLen: 200, maxLen: 500, desc: '東方傳說中的柔美水龍，現身時風調雨順。', color: '#06b6d4', finColor: '#0891b2' },
+      { id: 'l3', name: '海神三叉戟魚', rarity: 'legendary', basePrice: 1680, minLen: 120, maxLen: 280, desc: '尾鰭如同海神波塞冬的黃金三叉戟，威風八面。', color: '#38bdf8', finColor: '#f59e0b' },
+      { id: 'l4', name: '時光流影蝶', rarity: 'legendary', basePrice: 1900, minLen: 35, maxLen: 80, desc: '能在微光中折疊時間軌跡，泳姿如夢似幻。', color: '#f472b6', finColor: '#c084fc' },
+      { id: 'l5', name: '不死鳥錦鯉', rarity: 'legendary', basePrice: 2000, minLen: 70, maxLen: 160, desc: '永不熄滅的溫暖鳳凰之火，據說能帶來永恆健康。', color: '#ef4444', finColor: '#f97316' },
+      { id: 'l6', name: '幻光霸王旗魚', rarity: 'legendary', basePrice: 1850, minLen: 160, maxLen: 360, desc: '破浪飛馳的海洋王者，身後常拖曳著七彩雲霞。', color: '#6366f1', finColor: '#a855f7' },
+      { id: 'l7', name: '虛空吞噬者', rarity: 'legendary', basePrice: 2150, minLen: 110, maxLen: 290, desc: '來自星海深處的異界訪客，吸收著周圍的雜質。', color: '#312e81', finColor: '#4c1d95' },
+      { id: 'l8', name: '太陽神金鱗魚', rarity: 'legendary', basePrice: 2300, minLen: 80, maxLen: 180, desc: '吸納烈日精華誕生的神聖水產，光芒耀眼溫暖。', color: '#eab308', finColor: '#fbbf24' },
+      { id: 'l9', name: '雷鳴巨鯨鯊', rarity: 'legendary', basePrice: 2450, minLen: 300, maxLen: 750, desc: '龐大如島嶼，每一次換氣都帶來輕微的轟隆雷聲。', color: '#4338ca', finColor: '#fbbf24' },
+      { id: 'l10', name: '月影九尾魚', rarity: 'legendary', basePrice: 2100, minLen: 50, maxLen: 110, desc: '長有九片飄飄似仙的柔紗尾鰭，月夜最愛浮頭。', color: '#e0e7ff', finColor: '#818cf8' },
+
+      // 6. Mythic (10)
+      { id: 'm1', name: '創世海靈', rarity: 'mythic', basePrice: 4200, minLen: 180, maxLen: 420, desc: '世界初成時第一滴純淨天水所化，純真而聖潔。', color: '#38bdf8', finColor: '#ffffff' },
+      { id: 'm2', name: '克拉肯之子', rarity: 'mythic', basePrice: 4600, minLen: 250, maxLen: 600, desc: '北海傳奇巨妖一族，觸手柔軟且充滿靈性。', color: '#881337', finColor: '#4c0519' },
+      { id: 'm3', name: '熾天使羽鱗魚', rarity: 'mythic', basePrice: 4900, minLen: 120, maxLen: 280, desc: '生有六枚光之羽翼鰭，散發祥和的治癒金輝。', color: '#fef08a', finColor: '#f59e0b' },
+      { id: 'm4', name: '宇宙星河游鰻', rarity: 'mythic', basePrice: 5200, minLen: 350, maxLen: 900, desc: '身軀裡孕育著無窮星雲與星群，悠游於無垠海界。', color: '#581c87', finColor: '#3b82f6' },
+      { id: 'm5', name: '永恆之海守護者', rarity: 'mythic', basePrice: 5500, minLen: 280, maxLen: 700, desc: '萬年來靜靜守護著悠閒海灣水脈的古老海精靈。', color: '#0d9488', finColor: '#14b8a6' },
+      { id: 'm6', name: '深淵帝王鰩', rarity: 'mythic', basePrice: 5300, minLen: 300, maxLen: 800, desc: '黑金配色的皇者之姿，游動時如同一位優雅領主。', color: '#0f172a', finColor: '#eab308' },
+      { id: 'm7', name: '次元裂隙異界魚', rarity: 'mythic', basePrice: 5600, minLen: 90, maxLen: 220, desc: '身形時隱時現於不同維度空間，無拘無束。', color: '#ec4899', finColor: '#6366f1' },
+      { id: 'm8', name: '世界樹神木魚', rarity: 'mythic', basePrice: 5800, minLen: 200, maxLen: 500, desc: '由世界樹根系浸潤的甘泉中滋養孕育的神奇生靈。', color: '#15803d', finColor: '#ca8a04' },
+      { id: 'm9', name: '黃金律法巨鱘', rarity: 'mythic', basePrice: 6200, minLen: 320, maxLen: 850, desc: '古老秩序的具象象徵，身上的符文閃耀不熄。', color: '#eab308', finColor: '#ffffff' },
+      { id: 'm10', name: '冥河幽魂引導者', rarity: 'mythic', basePrice: 6500, minLen: 240, maxLen: 620, desc: '引導迷航水手找到回家港灣的溫暖幽綠之光。', color: '#3f3f46', finColor: '#10b981' },
+
+      // 7. Ancient (10)
+      { id: 'a1', name: '始祖鄧氏魚', rarity: 'ancient', basePrice: 9500, minLen: 400, maxLen: 900, desc: '泥盆紀的古代裝甲霸主，頭部骨板堅不可摧。', color: '#78716c', finColor: '#44403c' },
+      { id: 'a2', name: '巨齒鯊幼體', rarity: 'ancient', basePrice: 10000, minLen: 350, maxLen: 800, desc: '史前頂級巨獸的傳承者，牙齒邊緣如精美化石。', color: '#475569', finColor: '#94a3b8' },
+      { id: 'a3', name: '太古腔棘魚', rarity: 'ancient', basePrice: 10800, minLen: 120, maxLen: 260, desc: '數億年來外形不曾改變的活化石，沈著而長壽。', color: '#1e3a8a', finColor: '#172554' },
+      { id: 'a4', name: '寒武紀奇蝦王', rarity: 'ancient', basePrice: 11500, minLen: 100, maxLen: 240, desc: '地球生命大爆發初期的明星，巨型複眼敏銳無雙。', color: '#b91c1c', finColor: '#ea580c' },
+      { id: 'a5', name: '三疊紀幻龍魚', rarity: 'ancient', basePrice: 12800, minLen: 250, maxLen: 650, desc: '介於龍與魚之間的遠古幻獸，游姿瀟灑寫意。', color: '#0284c7', finColor: '#38bdf8' },
+      { id: 'a6', name: '原始龍王鯨', rarity: 'ancient', basePrice: 14000, minLen: 600, maxLen: 1500, desc: '始新世的遠古海洋巨靈，龐大身長如延綿群山。', color: '#334155', finColor: '#64748b' },
+      { id: 'a7', name: '古生代鸚鵡螺巨魚', rarity: 'ancient', basePrice: 13500, minLen: 180, maxLen: 450, desc: '背負著幾何螺旋化石螺殼，漫步深邃地質年代。', color: '#d97706', finColor: '#fef3c7' },
+      { id: 'a8', name: '原初混沌始祖靈', rarity: 'ancient', basePrice: 16000, minLen: 500, maxLen: 1200, desc: '萬物未分時凝聚的第一縷水汽精華，通體無瑕。', color: '#a855f7', finColor: '#ec4899' },
+      { id: 'a9', name: '洪荒復甦化石魚', rarity: 'ancient', basePrice: 17500, minLen: 300, maxLen: 750, desc: '從億年岩層化石中奇蹟復甦的心跳，值得萬分珍惜。', color: '#a1a1aa', finColor: '#d4d4d8' },
+      { id: 'a10', name: '創世神之淚魚', rarity: 'ancient', basePrice: 22000, minLen: 200, maxLen: 500, desc: '神明俯瞰蔚藍星球時留下的一滴慈悲之淚，世間罕見。', color: '#38bdf8', finColor: '#f43f5e' }
+    ];
+
+    const BAITS = [
+      { id: 0, name: '麵包屑', price: 0, count: Infinity, desc: '免費且無限供應的純樸餌料，主要吸引普通魚。', weights: { common: 75, uncommon: 20, rare: 5, epic: 0, legendary: 0, mythic: 0, ancient: 0 } },
+      { id: 1, name: '肥沃蚯蚓', price: 20, count: 0, desc: '鬆軟泥土中的活餌，罕見魚類的咬鉤率明顯提高。', weights: { common: 48, uncommon: 38, rare: 13, epic: 1, legendary: 0, mythic: 0, ancient: 0 } },
+      { id: 2, name: '擬餌小蝦', price: 60, count: 0, desc: '晶瑩彈跳的小蝦仁，能誘來不少稀有海產。', weights: { common: 32, uncommon: 42, rare: 21, epic: 5, legendary: 0, mythic: 0, ancient: 0 } },
+      { id: 3, name: '螢光蟋蟀', price: 150, count: 0, desc: '夜間微微發光的昆蟲餌，深受稀有與史詩魚喜愛。', weights: { common: 18, uncommon: 34, rare: 35, epic: 11, legendary: 2, mythic: 0, ancient: 0 } },
+      { id: 4, name: '香甜肉丸', price: 350, count: 0, desc: '秘製濃郁香料調和，史詩魚的咬鉤頻率大幅上升。', weights: { common: 10, uncommon: 24, rare: 36, epic: 24, legendary: 5, mythic: 1, ancient: 0 } },
+      { id: 5, name: '彩虹小管', price: 800, count: 0, desc: '閃爍多重色澤的柔軟誘餌，傳說巨物難以抗拒。', weights: { common: 5, uncommon: 14, rare: 34, epic: 32, legendary: 12, mythic: 3, ancient: 0 } },
+      { id: 6, name: '深海發光蟲', price: 1800, count: 0, desc: '採集自千米海溝的螢光蟲，傳說與神話魚紛紛出水。', weights: { common: 2, uncommon: 7, rare: 24, epic: 36, legendary: 23, mythic: 7, ancient: 1 } },
+      { id: 7, name: '龍涎浸泡餌', price: 4000, count: 0, desc: '浸潤了香醇龍涎，神話級神靈生物極高機率咬鉤。', weights: { common: 1, uncommon: 3, rare: 14, epic: 30, legendary: 33, mythic: 16, ancient: 3 } },
+      { id: 8, name: '星之碎片誘餌', price: 9000, count: 0, desc: '包裹著天外流星碎屑，能強力引導遠古海獸浮上來。', weights: { common: 0, uncommon: 2, rare: 9, epic: 24, legendary: 33, mythic: 24, ancient: 8 } },
+      { id: 9, name: '原初聖水凝膠', price: 20000, count: 0, desc: '極致稀世聖物，遠古與神話巨獸瘋狂咬鉤的終極神餌！', weights: { common: 0, uncommon: 0, rare: 4, epic: 15, legendary: 30, mythic: 31, ancient: 20 } }
+    ];
+
+    const RODS = [
+      { id: 0, name: '破舊竹竿', price: 0, luck: 1.0, bonusWidth: 0, easeFactor: 1.0, desc: '新手入門竹竿，手感淳樸，適合養老初體驗。' },
+      { id: 1, name: '杉木休閒竿', price: 250, luck: 1.15, bonusWidth: 15, easeFactor: 1.2, desc: '溫潤原木打造，判定範圍更寬、魚兒更安定。' },
+      { id: 2, name: '輕盈碳纖竿', price: 950, luck: 1.35, bonusWidth: 28, easeFactor: 1.4, desc: '輕巧韌性高，大幅抑制魚兒掙扎幅度。' },
+      { id: 3, name: '鈦合金強韌竿', price: 3200, luck: 1.6, bonusWidth: 42, easeFactor: 1.65, desc: '極高金屬張力承受度，判定綠區明顯放大。' },
+      { id: 4, name: '星銀秘法竿', price: 9000, luck: 1.9, bonusWidth: 58, easeFactor: 1.9, desc: '銀光刻紋增添法力，小遊戲極為輕鬆休閒。' },
+      { id: 5, name: '太古龍鱗竿', price: 25000, luck: 2.3, bonusWidth: 75, easeFactor: 2.3, desc: '編織龍鱗神威，魚兒在竿前完全乖巧順服。' },
+      { id: 6, name: '創世神匠之竿', price: 70000, luck: 3.0, bonusWidth: 95, easeFactor: 3.0, desc: '神話至尊神器，判定條寬大如海，隨心所欲必中！' }
+    ];
+
+    const State = {
+      coins: 120,
+      equippedBait: 0,
+      equippedRod: 0,
+      unlockedRods: [0],
+      bag: [],
+      dex: {},
+
+      init() {
+        FISH_DATABASE.forEach(f => {
+          this.dex[f.id] = { caught: false, maxLen: 0, count: 0 };
+        });
+      }
+    };
+    State.init();
+
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    let width = 0;
+    let height = 0;
+
+    function resizeCanvas() {
+      const wrapper = document.getElementById('viewport-wrapper');
+      width = wrapper.clientWidth;
+      height = wrapper.clientHeight;
+      canvas.width = width;
+      canvas.height = height;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    const WORLD_WIDTH = 1900;
+    const GROUND_Y = 380;
+    const PIER_START = 520;
+    const PIER_END = 1140;
+    const WATER_SURFACE_Y = 410;
+
+    const Camera = {
+      x: 0,
+      update(targetX) {
+        const dest = targetX - width / 2;
+        this.x += (dest - this.x) * 0.1;
+        if (this.x < 0) this.x = 0;
+        if (this.x > WORLD_WIDTH - width) this.x = Math.max(0, WORLD_WIDTH - width);
+      }
+    };
+
+    const Player = {
+      x: 340,
+      y: GROUND_Y,
+      vx: 0,
+      speed: 3.6,
+      direction: 1,
+      state: 'idle', // 'idle', 'walk', 'waiting', 'biting', 'minigame'
+      frame: 0,
+      animTimer: 0,
+
+      bobberX: 0,
+      bobberY: 0,
+      bobberTargetX: 0,
+      bobberTargetY: 0,
+      biteTimer: 0,
+      exclamationTimer: 0,
+      activeBiteFish: null,
+
+      update() {
+        if (this.state === 'idle' || this.state === 'walk') {
+          this.x += this.vx;
+          if (this.vx !== 0) {
+            this.direction = this.vx > 0 ? 1 : -1;
+            this.state = 'walk';
+            this.animTimer++;
+            if (this.animTimer % 8 === 0) this.frame = (this.frame + 1) % 4;
+          } else {
+            this.state = 'idle';
+            this.frame = 0;
+          }
+          if (this.x < 70) this.x = 70;
+          if (this.x > PIER_END - 30) this.x = PIER_END - 30;
+        }
+
+        if (this.state === 'waiting') {
+          this.biteTimer--;
+          if (this.biteTimer <= 0) {
+            this.triggerBite();
+          }
+        } else if (this.state === 'biting') {
+          this.exclamationTimer++;
+          // Generous 10 seconds bite window so casual players never miss it
+          if (this.exclamationTimer > 600) {
+            this.cancelFishing('魚兒悠悠遊走了，下次再試試看吧～');
+          }
+        }
+      },
+
+      castRod() {
+        if (this.state !== 'idle' && this.state !== 'walk') return;
+        const bait = BAITS[State.equippedBait];
+        if (bait.count <= 0 && bait.count !== Infinity) {
+          showToast('此款誘餌已用光，請至左側老商人處補充喔！');
+          return;
+        }
+
+        this.vx = 0;
+        this.direction = 1;
+        this.state = 'waiting';
+        this.bobberTargetX = Math.min(WORLD_WIDTH - 80, this.x + 130 + Math.random() * 80);
+        this.bobberTargetY = WATER_SURFACE_Y + 12;
+
+        // Waiting time: comfortable 2.5 ~ 4.5 seconds
+        this.biteTimer = 150 + Math.floor(Math.random() * 120);
+        this.exclamationTimer = 0;
+        Sound.cast();
+        createSplashes(this.bobberTargetX, WATER_SURFACE_Y, 5);
+        updateUI();
+      },
+
+      triggerBite() {
+        this.state = 'biting';
+        this.exclamationTimer = 0;
+        Sound.bite();
+        this.activeBiteFish = rollFish();
+        createSplashes(this.bobberTargetX, WATER_SURFACE_Y, 8);
+        updateUI();
+      },
+
+      cancelFishing(reason) {
+        if (reason) showToast(reason);
+        Sound.fail();
+        createSplashes(this.bobberTargetX, WATER_SURFACE_Y, 4);
+        this.state = 'idle';
+        this.activeBiteFish = null;
+        updateUI();
+      }
+    };
+
+    const Campfire = {
+      x: 180,
+      y: GROUND_Y + 4,
+      particles: [],
+      update() {
+        if (Math.random() < 0.35) {
+          this.particles.push({
+            x: this.x + (Math.random() * 16 - 8),
+            y: this.y - 6,
+            vx: (Math.random() - 0.5) * 0.5,
+            vy: -1.0 - Math.random() * 1.3,
+            life: 35 + Math.random() * 20,
+            size: 2 + Math.random() * 3,
+            color: Math.random() < 0.6 ? '#f97316' : '#facc15'
+          });
+        }
+        for (let i = this.particles.length - 1; i >= 0; i--) {
+          const p = this.particles[i];
+          p.x += p.vx;
+          p.y += p.vy;
+          p.life--;
+          if (p.life <= 0) this.particles.splice(i, 1);
+        }
+      }
+    };
+
+    const NPC_Merchant = {
+      x: 235,
+      y: GROUND_Y,
+      name: '老漁夫商人',
+      isNear(px) {
+        return Math.abs(px - this.x) < 75;
+      }
+    };
+
+    const splashes = [];
+    function createSplashes(x, y, count = 6) {
+      for (let i = 0; i < count; i++) {
+        splashes.push({
+          x, y,
+          vx: (Math.random() - 0.5) * 3.5,
+          vy: -2 - Math.random() * 2.5,
+          alpha: 1,
+          size: 2 + Math.random() * 2.5
+        });
+      }
+    }
+
+    const ambientFish = [];
+    for (let i = 0; i < 7; i++) {
+      ambientFish.push({
+        x: 1120 + Math.random() * 650,
+        y: WATER_SURFACE_Y + 35 + Math.random() * 190,
+        speed: 0.5 + Math.random() * 0.8,
+        dir: Math.random() < 0.5 ? 1 : -1,
+        len: 16 + Math.random() * 22
+      });
+    }
+
+    function rollFish() {
+      const bait = BAITS[State.equippedBait];
+      const rod = RODS[State.equippedRod];
+
+      const weights = { ...bait.weights };
+      weights.rare *= rod.luck;
+      weights.epic *= rod.luck;
+      weights.legendary *= rod.luck;
+      weights.mythic *= rod.luck;
+      weights.ancient *= rod.luck;
+
+      let totalWeight = 0;
+      for (const k in weights) totalWeight += weights[k];
+
+      let randomVal = Math.random() * totalWeight;
+      let chosenRarity = 'common';
+
+      for (const rarity of ['ancient', 'mythic', 'legendary', 'epic', 'rare', 'uncommon', 'common']) {
+        if (randomVal <= weights[rarity]) {
+          chosenRarity = rarity;
+          break;
+        }
+        randomVal -= weights[rarity];
+      }
+
+      const candidates = FISH_DATABASE.filter(f => f.rarity === chosenRarity);
+      const template = candidates[Math.floor(Math.random() * candidates.length)];
+
+      const length = Math.round((template.minLen + Math.random() * (template.maxLen - template.minLen)) * 10) / 10;
+      const sizeMultiplier = 0.85 + (length - template.minLen) / (template.maxLen - template.minLen) * 0.35;
+      const price = Math.round(template.basePrice * sizeMultiplier);
+
+      return {
+        ...template,
+        length,
+        price
+      };
+    }
+
+    const MiniGame = {
+      active: false,
+      type: 0,
+      fish: null,
+      progress: 35,
+      sub: {},
+
+      start(fish) {
+        this.active = true;
+        this.fish = fish;
+        // Randomly pick 1 of 5 casual subgames (0 to 4)
+        this.type = Math.floor(Math.random() * 5);
+        this.progress = 35; // friendly starting progress
+        Player.state = 'minigame';
+
+        const container = document.getElementById('minigame-container');
+        container.style.display = 'flex';
+
+        const rod = RODS[State.equippedRod];
+        const ease = rod.easeFactor;
+        const bWidth = rod.bonusWidth;
+
+        const stage = document.getElementById('mg-stage-area');
+        const title = document.getElementById('mg-title');
+        const desc = document.getElementById('mg-desc');
+        const hint = document.getElementById('mg-hint');
+        const touchArea = document.getElementById('mg-touch-actions');
+        stage.innerHTML = '';
+        touchArea.innerHTML = '';
+
+        if (this.type === 0) {
+          // 1. Balance Bar (浮標平衡 - 超休閒模式：慢速、45%大綠框、快速集滿)
+          title.textContent = '⚖️ 浮標平衡 (超悠閒)';
+          desc.textContent = '綠色捕獲框超大！輕按按鈕讓綠框罩住悠哉游動的魚影～';
+          hint.textContent = '電腦: [空白鍵] 或 長按滑鼠 | 手機: 長按下方按鈕';
+          
+          const boxW = Math.min(85, 45 + (bWidth * 0.25)); // 45% ~ 85% width!
+          stage.innerHTML = `
+            <div style="position:relative; width:100%; height:46px; background:#020617; border:2px solid #38bdf8; border-radius:8px; overflow:hidden;" id="mg-balance-track">
+              <div id="mg-catch-box" style="position:absolute; top:0; bottom:0; left:20%; width:${boxW}%; background:rgba(34,197,94,0.48); border:2px solid #22c55e; border-radius:6px;"></div>
+              <div id="mg-fish-icon" style="position:absolute; top:9px; left:40%; font-size:22px; transition:left 0.1s ease-out;">🐟</div>
+            </div>
+            <div class="bar-outer" style="margin-top:6px;"><div class="bar-inner" id="mg-progress-bar" style="width:35%;"></div></div>
+          `;
+          touchArea.innerHTML = `<button class="btn-pixel cyan" id="mg-hold-btn" style="width:100%; padding:14px; font-size:16px; justify-content:center;">🎮 長按給予拉力 / 放手沉降</button>`;
+
+          this.sub = {
+            boxX: 20,
+            boxVx: 0,
+            boxWidthPercent: boxW,
+            fishX: 40,
+            fishTargetX: 40,
+            isHolding: false
+          };
+          this.bindHoldButton('mg-hold-btn');
+
+        } else if (this.type === 1) {
+          // 2. Reel Tug of war (快速收線拔河 - 超休閒：每次+13%，只需點擊5~6下)
+          title.textContent = '⚡ 輕快收線 (超悠閒)';
+          desc.textContent = '魚兒拉力非常微弱！輕鬆點擊幾次收線按鈕即可拉上岸！';
+          hint.textContent = '電腦: 輕點 [空白鍵] 或 [E] | 手機: 點擊下方收線按鈕';
+          stage.innerHTML = `
+            <div style="display:flex; justify-content:space-between; width:100%; font-size:13px; font-weight:bold;">
+              <span style="color:#22c55e;">岸邊 🏖️ (已靠近)</span>
+              <span style="color:#38bdf8;">深水 🌊</span>
+            </div>
+            <div class="bar-outer"><div class="bar-inner" id="mg-progress-bar" style="width:40%;"></div></div>
+            <div id="mg-pull-display" style="font-size:20px; font-weight:800; color:#fbbf24; margin-top:2px;">輕鬆收線中～</div>
+          `;
+          touchArea.innerHTML = `<button class="btn-pixel gold" id="mg-tap-btn" style="width:100%; padding:15px; font-size:17px; justify-content:center;">🎣 輕點收線！ (每次大幅拉近)</button>`;
+          this.sub = {
+            pullStrength: 13 * ease, // 13%+ per tap!
+            drainSpeed: 0.07 // very slow retreat
+          };
+          document.getElementById('mg-tap-btn').addEventListener('pointerdown', (e) => {
+            e.preventDefault();
+            this.handleTapAction();
+          });
+
+        } else if (this.type === 2) {
+          // 3. Timing Strike (精準時機打擊 - 鐘擺超慢、40%大綠區、只需命中2次)
+          title.textContent = '🎯 時機輕擊 (超悠閒)';
+          desc.textContent = '指針像大鐘擺一樣慢悠悠擺動，經過寬敞綠區時按下即可！(僅需 2 次)';
+          hint.textContent = '電腦: [空白鍵] 或 [E] | 手機: 點擊 [時機命中] 按鈕';
+          
+          const zoneWidth = Math.min(65, 40 + (bWidth * 0.3)); // 40%+ width
+          const zoneLeft = (100 - zoneWidth) / 2;
+          stage.innerHTML = `
+            <div style="position:relative; width:100%; height:46px; background:#020617; border:2px solid #64748b; border-radius:8px; overflow:hidden;">
+              <div id="mg-timing-zone" style="position:absolute; top:0; bottom:0; left:${zoneLeft}%; width:${zoneWidth}%; background:rgba(34,197,94,0.42); border-left:3px solid #22c55e; border-right:3px solid #22c55e;"></div>
+              <div id="mg-needle" style="position:absolute; top:0; bottom:0; left:0%; width:6px; background:#ef4444; box-shadow:0 0 10px #ef4444;"></div>
+            </div>
+            <div style="font-size:16px; font-weight:bold; color:#4ade80;" id="mg-strike-count">成功次數：0 / 2</div>
+          `;
+          touchArea.innerHTML = `<button class="btn-pixel cyan" id="mg-strike-btn" style="width:100%; padding:15px; font-size:17px; justify-content:center;">🎯 時機命中！ (點擊)</button>`;
+          this.sub = {
+            needleX: 0,
+            needleDir: 1,
+            speed: 0.85 / Math.min(1.8, ease), // very slow pendulum
+            zoneLeft,
+            zoneWidth,
+            strikes: 0,
+            targetStrikes: 2 // only 2 hits needed!
+          };
+          document.getElementById('mg-strike-btn').addEventListener('pointerdown', (e) => {
+            e.preventDefault();
+            this.handleTimingHit();
+          });
+
+        } else if (this.type === 3) {
+          // 4. Arrow Rhythm (方向節奏考驗 - 僅3個箭頭，超長12秒倒數)
+          title.textContent = '🎶 箭頭確認 (超悠閒)';
+          desc.textContent = '只有 3 個方向箭頭，時間充裕長達 12 秒，請從容按下！';
+          hint.textContent = '電腦: [↑ ↓ ← →] 或 [W A S D] | 手機: 點擊下方箭頭';
+          const arrows = ['←', '↑', '↓', '→'];
+          const sequence = [];
+          for (let i = 0; i < 3; i++) sequence.push(arrows[Math.floor(Math.random() * 4)]);
+
+          stage.innerHTML = `
+            <div id="mg-arrow-seq" style="display:flex; gap:14px; font-size:30px; font-weight:900;">
+              ${sequence.map((arr, i) => `<span id="mg-arrow-${i}" style="color:#94a3b8; border:2px solid #475569; border-radius:8px; padding:6px 16px; background:#1e293b;">${arr}</span>`).join('')}
+            </div>
+            <div class="bar-outer" style="margin-top:10px;"><div class="bar-inner" id="mg-timer-bar" style="width:100%; background:#f59e0b;"></div></div>
+          `;
+          touchArea.innerHTML = `
+            <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:8px; width:100%;">
+              <button class="touch-btn" data-arrow="←" style="width:100%;">←</button>
+              <button class="touch-btn" data-arrow="↑" style="width:100%;">↑</button>
+              <button class="touch-btn" data-arrow="↓" style="width:100%;">↓</button>
+              <button class="touch-btn" data-arrow="→" style="width:100%;">→</button>
+            </div>
+          `;
+          this.sub = {
+            sequence,
+            currentIndex: 0,
+            maxTime: 720 * ease, // 12 seconds at 60fps!
+            remainingTime: 720 * ease
+          };
+          this.highlightCurrentArrow();
+          touchArea.querySelectorAll('button').forEach(btn => {
+            btn.addEventListener('pointerdown', (e) => {
+              e.preventDefault();
+              this.handleArrowInput(btn.getAttribute('data-arrow'));
+            });
+          });
+
+        } else if (this.type === 4) {
+          // 5. Tension Control (釣線張力控管 - 55%寬闊安全帶，只需維持3.5秒)
+          title.textContent = '🧵 張力控管 (超悠閒)';
+          desc.textContent = '綠色安全區超寬！指針輕微緩慢，維持在綠色區域內幾秒鐘即可！';
+          hint.textContent = '電腦: 長按 [空白鍵] 上升，放開緩降 | 手機: 長按按鈕';
+          
+          const safeW = Math.min(80, 55 + (bWidth * 0.3)); // 55% ~ 80% width!
+          const safeL = (100 - safeW) / 2;
+          stage.innerHTML = `
+            <div style="position:relative; width:100%; height:46px; background:#020617; border:2px solid #475569; border-radius:8px; overflow:hidden;">
+              <div style="position:absolute; top:0; bottom:0; left:${safeL}%; width:${safeW}%; background:rgba(34,197,94,0.42); border-left:3px dashed #22c55e; border-right:3px dashed #22c55e;"></div>
+              <div id="mg-tension-pointer" style="position:absolute; top:0; bottom:0; left:50%; width:8px; background:#38bdf8; box-shadow:0 0 8px #38bdf8;"></div>
+            </div>
+            <div style="display:flex; justify-content:space-between; width:100%; font-size:12px; color:#94a3b8;">
+              <span style="color:#94a3b8;">太鬆</span>
+              <span style="color:#22c55e; font-weight:bold;">🌿 超寬安全放鬆帶</span>
+              <span style="color:#94a3b8;">太緊</span>
+            </div>
+            <div class="bar-outer" style="margin-top:6px;"><div class="bar-inner" id="mg-progress-bar" style="width:15%; background:#22c55e;"></div></div>
+          `;
+          touchArea.innerHTML = `<button class="btn-pixel cyan" id="mg-tension-btn" style="width:100%; padding:14px; font-size:16px; justify-content:center;">🧵 長按緊線 / 放手放線</button>`;
+          this.sub = {
+            tension: 50,
+            isHolding: false,
+            safeStart: safeL,
+            safeEnd: safeL + safeW,
+            maintainTime: 0,
+            targetTime: Math.max(120, 210 / ease) // 3.5 seconds!
+          };
+          this.bindHoldButton('mg-tension-btn');
+        }
+      },
+
+      bindHoldButton(btnId) {
+        const btn = document.getElementById(btnId);
+        if (!btn) return;
+        const start = (e) => { e.preventDefault(); this.sub.isHolding = true; };
+        const end = (e) => { e.preventDefault(); this.sub.isHolding = false; };
+        btn.addEventListener('pointerdown', start);
+        btn.addEventListener('pointerup', end);
+        btn.addEventListener('pointercancel', end);
+        btn.addEventListener('pointerleave', end);
+      },
+
+      update() {
+        if (!this.active) return;
+
+        if (this.type === 0) {
+          // 1. Balance update (Super gentle movement & rapid capture)
+          const s = this.sub;
+          if (s.isHolding) s.boxVx += 0.45;
+          else s.boxVx -= 0.38;
+          s.boxVx *= 0.88;
+          s.boxX += s.boxVx;
+          if (s.boxX < 0) { s.boxX = 0; s.boxVx = 0; }
+          const maxLeft = 100 - s.boxWidthPercent;
+          if (s.boxX > maxLeft) { s.boxX = maxLeft; s.boxVx = 0; }
+
+          // Fish floats like a peaceful leaf
+          if (Math.random() < 0.02) {
+            s.fishTargetX = 15 + Math.random() * 65;
+          }
+          s.fishX += (s.fishTargetX - s.fishX) * 0.035;
+
+          const fishInside = s.fishX >= s.boxX && s.fishX <= s.boxX + s.boxWidthPercent;
+          if (fishInside) {
+            this.progress += 1.1; // Fills very fast (~2.5s)
+          } else {
+            this.progress -= 0.12; // Almost no penalty when outside
+          }
+
+          const catchEl = document.getElementById('mg-catch-box');
+          const fishEl = document.getElementById('mg-fish-icon');
+          const progEl = document.getElementById('mg-progress-bar');
+          if (catchEl) catchEl.style.left = s.boxX + '%';
+          if (fishEl) fishEl.style.left = s.fishX + '%';
+          if (progEl) progEl.style.width = Math.min(100, Math.max(0, this.progress)) + '%';
+
+          if (this.progress >= 100) this.succeed();
+
+        } else if (this.type === 1) {
+          // 2. Reel Speed (Very mild drain)
+          const s = this.sub;
+          this.progress -= s.drainSpeed;
+          const progEl = document.getElementById('mg-progress-bar');
+          if (progEl) progEl.style.width = Math.min(100, Math.max(0, this.progress)) + '%';
+
+          if (this.progress >= 100) this.succeed();
+
+        } else if (this.type === 2) {
+          // 3. Timing Strike (Slow swinging pendulum)
+          const s = this.sub;
+          s.needleX += s.speed * s.needleDir;
+          if (s.needleX >= 98) { s.needleX = 98; s.needleDir = -1; }
+          if (s.needleX <= 0) { s.needleX = 0; s.needleDir = 1; }
+          const needleEl = document.getElementById('mg-needle');
+          if (needleEl) needleEl.style.left = s.needleX + '%';
+
+        } else if (this.type === 3) {
+          // 4. Arrow Rhythm (12 seconds countdown)
+          const s = this.sub;
+          s.remainingTime -= 1;
+          const timeBar = document.getElementById('mg-timer-bar');
+          if (timeBar) timeBar.style.width = ((s.remainingTime / s.maxTime) * 100) + '%';
+          if (s.remainingTime <= 0) {
+            this.fail('時間到囉，魚兒悠悠遊走啦～');
+          }
+
+        } else if (this.type === 4) {
+          // 5. Tension Control (Gentle & quick success)
+          const s = this.sub;
+          if (s.isHolding) s.tension += 0.7;
+          else s.tension -= 0.55;
+
+          const pointer = document.getElementById('mg-tension-pointer');
+          if (pointer) pointer.style.left = Math.min(97, Math.max(0, s.tension)) + '%';
+
+          if (s.tension >= s.safeStart && s.tension <= s.safeEnd) {
+            s.maintainTime++;
+            this.progress = (s.maintainTime / s.targetTime) * 100;
+          } else {
+            s.maintainTime = Math.max(0, s.maintainTime - 0.25);
+            this.progress = (s.maintainTime / s.targetTime) * 100;
+          }
+
+          const progEl = document.getElementById('mg-progress-bar');
+          if (progEl) progEl.style.width = Math.min(100, Math.max(0, this.progress)) + '%';
+
+          if (s.maintainTime >= s.targetTime) this.succeed();
+        }
+      },
+
+      handleTapAction() {
+        if (!this.active || this.type !== 1) return;
+        this.progress += this.sub.pullStrength;
+        Sound.tick();
+        if (this.progress >= 100) this.succeed();
+      },
+
+      handleTimingHit() {
+        if (!this.active || this.type !== 2) return;
+        const s = this.sub;
+        if (s.needleX >= s.zoneLeft && s.needleX <= s.zoneLeft + s.zoneWidth) {
+          s.strikes++;
+          Sound.bite();
+          const strikeEl = document.getElementById('mg-strike-count');
+          if (strikeEl) strikeEl.textContent = `成功次數：${s.strikes} / ${s.targetStrikes}`;
+          if (s.strikes >= s.targetStrikes) {
+            this.succeed();
+          }
+        } else {
+          Sound.fail();
+          showToast('差一點點，放輕鬆抓準綠區再試一次！');
+        }
+      },
+
+      handleArrowInput(dir) {
+        if (!this.active || this.type !== 3) return;
+        const s = this.sub;
+        const expected = s.sequence[s.currentIndex];
+        if (dir === expected) {
+          Sound.tick();
+          const arrowEl = document.getElementById(`mg-arrow-${s.currentIndex}`);
+          if (arrowEl) {
+            arrowEl.style.background = '#22c55e';
+            arrowEl.style.borderColor = '#16a34a';
+            arrowEl.style.color = '#fff';
+          }
+          s.currentIndex++;
+          if (s.currentIndex >= s.sequence.length) {
+            this.succeed();
+          } else {
+            this.highlightCurrentArrow();
+          }
+        } else {
+          Sound.fail();
+          showToast('方向不太一樣喔～放輕鬆再看一眼！');
+        }
+      },
+
+      highlightCurrentArrow() {
+        const curEl = document.getElementById(`mg-arrow-${this.sub.currentIndex}`);
+        if (curEl) {
+          curEl.style.borderColor = '#38bdf8';
+          curEl.style.boxShadow = '0 0 12px #38bdf8';
+          curEl.style.color = '#38bdf8';
+        }
+      },
+
+      succeed() {
+        this.active = false;
+        document.getElementById('minigame-container').style.display = 'none';
+
+        const bait = BAITS[State.equippedBait];
+        if (bait.count !== Infinity) {
+          bait.count--;
+          if (bait.count <= 0) {
+            bait.count = 0;
+            State.equippedBait = 0; // fallback to free bait
+          }
+        }
+
+        State.bag.push(this.fish);
+        const dexEntry = State.dex[this.fish.id];
+        dexEntry.caught = true;
+        dexEntry.count = (dexEntry.count || 0) + 1;
+        if (this.fish.length > dexEntry.maxLen) dexEntry.maxLen = this.fish.length;
+
+        Player.state = 'idle';
+        Sound.fanfare();
+        showCatchModal(this.fish);
+        updateUI();
+      },
+
+      fail(reason = '魚兒脫鉤游走了～休閒養老不急，再拋一次竿吧！') {
+        this.active = false;
+        document.getElementById('minigame-container').style.display = 'none';
+        Player.cancelFishing(reason);
+      }
+    };
+
+    function showCatchModal(fish) {
+      const modal = document.getElementById('catch-celebration');
+      document.getElementById('catch-fish-name').textContent = fish.name;
+
+      const rInfo = RARITY_INFO[fish.rarity];
+      const rTag = document.getElementById('catch-fish-rarity');
+      rTag.textContent = rInfo.name;
+      rTag.style.background = rInfo.color;
+      rTag.style.color = '#000';
+
+      document.getElementById('catch-fish-specs').textContent = `體長: ${fish.length} cm | 價值: 💰 ${fish.price} 金幣`;
+      document.getElementById('catch-fish-desc').textContent = fish.desc;
+
+      const cCanvas = document.getElementById('catchCanvas');
+      const cctx = cCanvas.getContext('2d');
+      cctx.clearRect(0, 0, cCanvas.width, cCanvas.height);
+      drawPixelFish(cctx, cCanvas.width / 2, cCanvas.height / 2, fish, 1.85);
+
+      modal.style.display = 'flex';
+    }
+
+    document.getElementById('btn-collect-fish').addEventListener('click', () => {
+      document.getElementById('catch-celebration').style.display = 'none';
+    });
+
+    function drawPixelFish(c, cx, cy, fish, scale = 1.0) {
+      c.save();
+      c.translate(cx, cy);
+      c.scale(scale, scale);
+
+      // Body base
+      c.fillStyle = fish.color;
+      c.beginPath();
+      c.ellipse(0, 0, 14, 8, 0, 0, Math.PI * 2);
+      c.fill();
+
+      // Tail fin
+      c.fillStyle = fish.finColor;
+      c.beginPath();
+      c.moveTo(-12, 0);
+      c.lineTo(-20, -7);
+      c.lineTo(-17, 0);
+      c.lineTo(-20, 7);
+      c.closePath();
+      c.fill();
+
+      // Dorsal fin
+      c.beginPath();
+      c.moveTo(-4, -7);
+      c.lineTo(4, -12);
+      c.lineTo(8, -6);
+      c.closePath();
+      c.fill();
+
+      // Eye
+      c.fillStyle = '#ffffff';
+      c.fillRect(7, -3, 3, 3);
+      c.fillStyle = '#0f172a';
+      c.fillRect(8, -2, 2, 2);
+
+      c.restore();
+    }
+
+    function render() {
+      ctx.clearRect(0, 0, width, height);
+      const camX = Camera.x;
+
+      // 1. Cozy Twilight Sky
+      const skyGrad = ctx.createLinearGradient(0, 0, 0, WATER_SURFACE_Y);
+      skyGrad.addColorStop(0, '#0c1b33');
+      skyGrad.addColorStop(0.6, '#1e3a5f');
+      skyGrad.addColorStop(1, '#f97316');
+      ctx.fillStyle = skyGrad;
+      ctx.fillRect(0, 0, width, WATER_SURFACE_Y);
+
+      // Distant rolling hills
+      ctx.fillStyle = '#172554';
+      ctx.beginPath();
+      ctx.moveTo(0, WATER_SURFACE_Y);
+      for (let i = 0; i <= width; i += 70) {
+        const mx = i + (camX * 0.2);
+        const my = WATER_SURFACE_Y - 45 - Math.sin(mx * 0.009) * 30;
+        ctx.lineTo(i, my);
+      }
+      ctx.lineTo(width, WATER_SURFACE_Y);
+      ctx.closePath();
+      ctx.fill();
+
+      // 2. Clear soothing ocean waters
+      const waterGrad = ctx.createLinearGradient(0, WATER_SURFACE_Y, 0, height);
+      waterGrad.addColorStop(0, '#0284c7');
+      waterGrad.addColorStop(0.35, '#0369a1');
+      waterGrad.addColorStop(1, '#082f49');
+      ctx.fillStyle = waterGrad;
+      ctx.fillRect(0, WATER_SURFACE_Y, width, height - WATER_SURFACE_Y);
+
+      // Swimming fish shadows in background
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.4)';
+      ambientFish.forEach(f => {
+        const sx = f.x - camX;
+        if (sx > -60 && sx < width + 60) {
+          f.x += f.speed * f.dir;
+          if (f.x > WORLD_WIDTH - 60) f.dir = -1;
+          if (f.x < PIER_END) f.dir = 1;
+          ctx.beginPath();
+          ctx.ellipse(sx, f.y, f.len, 5, 0, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      });
+
+      // Animated Water waves
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.35)';
+      const time = performance.now() * 0.0025;
+      for (let x = 0; x < width; x += 18) {
+        const wx = x + camX;
+        const wy = WATER_SURFACE_Y + Math.sin(wx * 0.045 + time) * 3;
+        ctx.fillRect(x, wy, 14, 2);
+      }
+
+      // 3. Grassy Shoreline
+      const shoreEndX = PIER_START - camX;
+      if (shoreEndX > 0) {
+        ctx.fillStyle = '#15803d';
+        ctx.fillRect(0 - camX, GROUND_Y, PIER_START, 24);
+        ctx.fillStyle = '#78350f';
+        ctx.fillRect(0 - camX, GROUND_Y + 24, PIER_START, height - GROUND_Y);
+      }
+
+      // 4. Wooden Pier
+      const pierScreenStart = PIER_START - camX;
+      const pierWidth = PIER_END - PIER_START;
+      ctx.fillStyle = '#451a03';
+      for (let px = PIER_START + 35; px < PIER_END; px += 85) {
+        const sx = px - camX;
+        ctx.fillRect(sx - 5, GROUND_Y, 10, height - GROUND_Y);
+      }
+      ctx.fillStyle = '#78350f';
+      ctx.fillRect(pierScreenStart, GROUND_Y, pierWidth, 14);
+      ctx.fillStyle = '#92400e';
+      ctx.fillRect(pierScreenStart, GROUND_Y - 2, pierWidth, 4);
+
+      // 5. Campfire and NPC
+      const cfx = Campfire.x - camX;
+      ctx.fillStyle = '#451a03';
+      ctx.fillRect(cfx - 12, Campfire.y, 24, 6);
+      Campfire.particles.forEach(p => {
+        ctx.fillStyle = p.color;
+        ctx.fillRect(p.x - camX, p.y, p.size, p.size);
+      });
+
+      // Merchant NPC
+      const npx = NPC_Merchant.x - camX;
+      ctx.fillStyle = '#ca8a04';
+      ctx.fillRect(npx - 10, NPC_Merchant.y - 48, 20, 6);
+      ctx.fillRect(npx - 6, NPC_Merchant.y - 54, 12, 6);
+      ctx.fillStyle = '#fde047';
+      ctx.fillRect(npx - 7, NPC_Merchant.y - 42, 14, 12);
+      ctx.fillStyle = '#f8fafc';
+      ctx.fillRect(npx - 6, NPC_Merchant.y - 32, 12, 8);
+      ctx.fillStyle = '#065f46';
+      ctx.fillRect(npx - 9, NPC_Merchant.y - 24, 18, 24);
+
+      if (NPC_Merchant.isNear(Player.x)) {
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
+        ctx.fillRect(npx - 58, NPC_Merchant.y - 84, 116, 26);
+        ctx.strokeStyle = '#34d399';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(npx - 58, NPC_Merchant.y - 84, 116, 26);
+        ctx.fillStyle = '#34d399';
+        ctx.font = 'bold 12px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('💬 [E] 對話 / 商店', npx, NPC_Merchant.y - 67);
+      }
+
+      const plx = Player.x - camX;
+      const ply = Player.y;
+
+      ctx.save();
+      ctx.translate(plx, ply);
+      ctx.scale(Player.direction, 1);
+
+      // Shadow
+      ctx.fillStyle = 'rgba(0,0,0,0.3)';
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 10, 3, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Legs / Walk
+      ctx.fillStyle = '#1e293b';
+      if (Player.state === 'walk') {
+        const legOff = Math.sin(Player.animTimer * 0.5) * 5;
+        ctx.fillRect(-6, -14, 4, 14 + legOff);
+        ctx.fillRect(2, -14, 4, 14 - legOff);
+      } else {
+        ctx.fillRect(-6, -14, 4, 14);
+        ctx.fillRect(2, -14, 4, 14);
+      }
+
+      // Cozy Blue Jacket
+      ctx.fillStyle = '#0284c7';
+      ctx.fillRect(-8, -32, 16, 18);
+
+      // Head
+      ctx.fillStyle = '#fed7aa';
+      ctx.fillRect(-6, -44, 12, 12);
+
+      // Beanie hat
+      ctx.fillStyle = '#dc2626';
+      ctx.fillRect(-8, -50, 16, 7);
+
+      // Fishing Rod
+      const rodColors = ['#ca8a04', '#78350f', '#334155', '#94a3b8', '#38bdf8', '#dc2626', '#eab308'];
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = rodColors[State.equippedRod] || '#ca8a04';
+
+      if (Player.state === 'waiting' || Player.state === 'biting' || Player.state === 'minigame') {
+        ctx.beginPath();
+        ctx.moveTo(2, -26);
+        ctx.lineTo(24, -42);
+        ctx.stroke();
+      } else {
+        ctx.beginPath();
+        ctx.moveTo(0, -26);
+        ctx.lineTo(16, -56);
+        ctx.stroke();
+      }
+      ctx.restore();
+
+      // Fishing Line & Float Bobber
+      if (Player.state === 'waiting' || Player.state === 'biting' || Player.state === 'minigame') {
+        const rodTipX = plx + (24 * Player.direction);
+        const rodTipY = ply - 42;
+        const bobX = Player.bobberTargetX - camX;
+        const bobY = Player.bobberTargetY + Math.sin(performance.now() * 0.005) * 2;
+
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.75)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(rodTipX, rodTipY);
+        ctx.quadraticCurveTo((rodTipX + bobX) / 2, (rodTipY + bobY) / 2 + 10, bobX, bobY);
+        ctx.stroke();
+
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(bobX - 3, bobY - 2, 6, 4);
+        ctx.fillStyle = '#ef4444';
+        ctx.fillRect(bobX - 3, bobY - 6, 6, 4);
+
+        if (Player.state === 'biting' || Player.state === 'minigame') {
+          ctx.fillStyle = '#fbbf24';
+          ctx.fillRect(plx - 5, ply - 75, 10, 22);
+          ctx.fillRect(plx - 5, ply - 50, 10, 6);
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+          ctx.beginPath();
+          ctx.arc(bobX, bobY, (performance.now() * 0.02) % 18, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+      }
+
+      // Water splashes
+      for (let i = splashes.length - 1; i >= 0; i--) {
+        const s = splashes[i];
+        s.x += s.vx;
+        s.y += s.vy;
+        s.vy += 0.15;
+        s.alpha -= 0.03;
+        if (s.alpha <= 0) {
+          splashes.splice(i, 1);
+          continue;
+        }
+        ctx.fillStyle = `rgba(255, 255, 255, ${s.alpha})`;
+        ctx.fillRect(s.x - camX, s.y, s.size, s.size);
+      }
+    }
+
+    function gameLoop() {
+      Player.update();
+      Campfire.update();
+      Camera.update(Player.x);
+      MiniGame.update();
+      render();
+      requestAnimationFrame(gameLoop);
+    }
+    requestAnimationFrame(gameLoop);
+
+    window.addEventListener('keydown', (e) => {
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) {
+        e.preventDefault();
+      }
+
+      if (MiniGame.active) {
+        if (MiniGame.type === 0 || MiniGame.type === 4) {
+          if (e.code === 'Space') MiniGame.sub.isHolding = true;
+        } else if (MiniGame.type === 1) {
+          if (e.code === 'Space' || e.code === 'KeyE') MiniGame.handleTapAction();
+        } else if (MiniGame.type === 2) {
+          if (e.code === 'Space' || e.code === 'KeyE') MiniGame.handleTimingHit();
+        } else if (MiniGame.type === 3) {
+          if (e.code === 'ArrowUp' || e.code === 'KeyW') MiniGame.handleArrowInput('↑');
+          if (e.code === 'ArrowDown' || e.code === 'KeyS') MiniGame.handleArrowInput('↓');
+          if (e.code === 'ArrowLeft' || e.code === 'KeyA') MiniGame.handleArrowInput('←');
+          if (e.code === 'ArrowRight' || e.code === 'KeyD') MiniGame.handleArrowInput('→');
+        }
+        return;
+      }
+
+      if (e.code === 'KeyA' || e.code === 'ArrowLeft') Player.vx = -Player.speed;
+      if (e.code === 'KeyD' || e.code === 'ArrowRight') Player.vx = Player.speed;
+
+      if (e.code === 'Space') handleMainAction();
+      if (e.code === 'KeyE') {
+        if (NPC_Merchant.isNear(Player.x)) openShopModal();
+        else handleMainAction();
+      }
+    });
+
+    window.addEventListener('keyup', (e) => {
+      if (MiniGame.active) {
+        if ((MiniGame.type === 0 || MiniGame.type === 4) && e.code === 'Space') {
+          MiniGame.sub.isHolding = false;
+        }
+      }
+      if ((e.code === 'KeyA' || e.code === 'ArrowLeft') && Player.vx < 0) Player.vx = 0;
+      if ((e.code === 'KeyD' || e.code === 'ArrowRight') && Player.vx > 0) Player.vx = 0;
+    });
+
+    function handleMainAction() {
+      if (MiniGame.active) return;
+      if (Player.state === 'idle' || Player.state === 'walk') {
+        Player.castRod();
+      } else if (Player.state === 'waiting') {
+        Player.cancelFishing('放空收竿，隨時都可以再拋竿喔～');
+      } else if (Player.state === 'biting') {
+        MiniGame.start(Player.activeBiteFish);
+      }
+    }
+
+    const btnLeft = document.getElementById('m-btn-left');
+    const btnRight = document.getElementById('m-btn-right');
+    const btnAction = document.getElementById('m-btn-action');
+    const btnInteract = document.getElementById('m-btn-interact');
+
+    function bindTouchMove(btn, speed) {
+      const start = (e) => { e.preventDefault(); Player.vx = speed; btn.classList.add('pressed'); };
+      const end = (e) => { e.preventDefault(); if (Player.vx === speed) Player.vx = 0; btn.classList.remove('pressed'); };
+      btn.addEventListener('pointerdown', start);
+      btn.addEventListener('pointerup', end);
+      btn.addEventListener('pointercancel', end);
+      btn.addEventListener('pointerleave', end);
+    }
+    bindTouchMove(btnLeft, -Player.speed);
+    bindTouchMove(btnRight, Player.speed);
+
+    btnAction.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      handleMainAction();
+    });
+
+    btnInteract.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      if (NPC_Merchant.isNear(Player.x)) openShopModal();
+      else showToast('請先走近左側營火旁的老漁夫商人～');
+    });
+
+    function updateUI() {
+      document.getElementById('hud-coins').textContent = State.coins.toLocaleString();
+
+      const bait = BAITS[State.equippedBait];
+      document.getElementById('hud-bait-info').innerHTML = `🪱 ${bait.name} ×<span id="hud-bait-count">${bait.count === Infinity ? '∞' : bait.count}</span>`;
+      document.getElementById('hud-bag-count').textContent = State.bag.length;
+
+      let caughtCount = 0;
+      for (const k in State.dex) {
+        if (State.dex[k].caught) caughtCount++;
+      }
+      document.getElementById('hud-dex-count').textContent = `${caughtCount}/70`;
+
+      if (Player.state === 'biting') {
+        btnAction.innerHTML = '⚡ 輕觸起線！<span class="label">魚上鉤了</span>';
+        btnAction.style.background = '#e11d48';
+      } else if (Player.state === 'waiting') {
+        btnAction.innerHTML = '⏳ 靜候中<span class="label">點擊提早收竿</span>';
+        btnAction.style.background = '#ca8a04';
+      } else {
+        btnAction.innerHTML = '🎣 拋竿<span class="label">點擊拋出</span>';
+        btnAction.style.background = '#0284c7';
+      }
+    }
+    updateUI();
+
+    const btnSound = document.getElementById('btn-sound-toggle');
+    btnSound.addEventListener('click', () => {
+      const isMuted = Sound.toggleMute();
+      btnSound.textContent = isMuted ? '🔇 靜音' : '🔊 音效';
+      btnSound.style.borderColor = isMuted ? '#ef4444' : '#64748b';
+    });
+
+    const btnReset = document.getElementById('btn-reset-game');
+    const modalReset = document.getElementById('modal-reset-confirm');
+    btnReset.addEventListener('click', () => modalReset.classList.add('active'));
+    document.getElementById('btn-confirm-reset').addEventListener('click', () => {
+      State.coins = 120;
+      State.equippedBait = 0;
+      State.equippedRod = 0;
+      State.unlockedRods = [0];
+      BAITS.forEach((b, i) => b.count = i === 0 ? Infinity : 0);
+      State.bag = [];
+      FISH_DATABASE.forEach(f => {
+        State.dex[f.id] = { caught: false, maxLen: 0, count: 0 };
+      });
+      modalReset.classList.remove('active');
+      Sound.fanfare();
+      showToast('遊戲進度已重新開始！重溫悠閒垂釣～');
+      updateUI();
+    });
+
+    document.querySelectorAll('[data-close]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.getElementById(btn.getAttribute('data-close')).classList.remove('active');
+      });
+    });
+
+    function showToast(msg) {
+      const div = document.createElement('div');
+      div.textContent = msg;
+      div.style.position = 'absolute';
+      div.style.top = '66px';
+      div.style.left = '50%';
+      div.style.transform = 'translateX(-50%)';
+      div.style.background = 'rgba(15, 23, 42, 0.96)';
+      div.style.border = '2px solid #38bdf8';
+      div.style.borderRadius = '8px';
+      div.style.padding = '8px 16px';
+      div.style.color = '#fff';
+      div.style.fontSize = '14px';
+      div.style.fontWeight = 'bold';
+      div.style.zIndex = '100';
+      div.style.boxShadow = '0 4px 18px rgba(0,0,0,0.55)';
+      div.style.animation = 'popIn 0.15s ease';
+      document.body.appendChild(div);
+      setTimeout(() => {
+        div.style.opacity = '0';
+        div.style.transition = 'opacity 0.3s ease';
+        setTimeout(() => div.remove(), 300);
+      }, 2200);
+    }
+
+    function openShopModal() {
+      renderShopSellTab();
+      renderShopBaitTab();
+      renderShopRodTab();
+      document.getElementById('modal-shop').classList.add('active');
+    }
+
+    document.querySelectorAll('.tab-btn[data-tab]').forEach(tabBtn => {
+      tabBtn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn[data-tab]').forEach(b => b.classList.remove('active'));
+        tabBtn.classList.add('active');
+        const target = tabBtn.getAttribute('data-tab');
+        document.getElementById('shop-sell-pane').style.display = target === 'shop-sell' ? 'block' : 'none';
+        document.getElementById('shop-bait-pane').style.display = target === 'shop-bait' ? 'grid' : 'none';
+        document.getElementById('shop-rod-pane').style.display = target === 'shop-rod' ? 'grid' : 'none';
+      });
+    });
+
+    function renderShopSellTab() {
+      document.getElementById('shop-fish-count').textContent = State.bag.length;
+      const list = document.getElementById('shop-fish-list');
+      list.innerHTML = '';
+      if (State.bag.length === 0) {
+        list.innerHTML = `<div style="grid-column: 1/-1; text-align:center; color:#94a3b8; padding:32px;">水產箱空空如也，到棧橋邊享受拋竿吧！🎣</div>`;
+        return;
+      }
+
+      State.bag.forEach((fish, idx) => {
+        const rInfo = RARITY_INFO[fish.rarity];
+        const card = document.createElement('div');
+        card.className = 'card-item';
+        card.innerHTML = `
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <strong style="color:${rInfo.color};">${fish.name}</strong>
+            <span class="rarity-tag" style="background:${rInfo.color}; color:#000;">${rInfo.name}</span>
+          </div>
+          <div style="font-size:12px; color:#94a3b8;">體長: ${fish.length}cm</div>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
+            <span style="font-weight:bold; color:#fbbf24;">💰 ${fish.price} 金幣</span>
+            <button class="btn-pixel gold" style="padding:4px 8px; font-size:12px;" data-sell-idx="${idx}">出售</button>
+          </div>
+        `;
+        list.appendChild(card);
+      });
+
+      list.querySelectorAll('[data-sell-idx]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const idx = parseInt(btn.getAttribute('data-sell-idx'), 10);
+          const fish = State.bag.splice(idx, 1)[0];
+          State.coins += fish.price;
+          Sound.coin();
+          showToast(`成功出售【${fish.name}】，換得 💰 ${fish.price} 金幣！`);
+          updateUI();
+          renderShopSellTab();
+        });
+      });
+    }
+
+    document.getElementById('btn-sell-all').addEventListener('click', () => {
+      if (State.bag.length === 0) {
+        showToast('背包裡目前沒有可以出售的魚獲喔～');
+        return;
+      }
+      let earned = 0;
+      State.bag.forEach(f => earned += f.price);
+      const totalSold = State.bag.length;
+      State.coins += earned;
+      State.bag = [];
+      Sound.coin();
+      showToast(`一次售出 ${totalSold} 條水產，獲得 💰 ${earned.toLocaleString()} 金幣！`);
+      updateUI();
+      renderShopSellTab();
+    });
+
+    function renderShopBaitTab() {
+      const pane = document.getElementById('shop-bait-pane');
+      pane.innerHTML = '';
+      BAITS.forEach(bait => {
+        const isEquipped = State.equippedBait === bait.id;
+        const card = document.createElement('div');
+        card.className = `card-item ${isEquipped ? 'equipped' : ''}`;
+        card.innerHTML = `
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <strong>🪱 ${bait.name}</strong>
+            <span style="font-size:12px; color:#38bdf8;">擁有: ${bait.count === Infinity ? '無限' : bait.count}</span>
+          </div>
+          <p style="font-size:12px; color:#cbd5e1; line-height:1.4;">${bait.desc}</p>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px;">
+            <span style="font-weight:bold; color:#fbbf24;">${bait.price === 0 ? '免費使用' : `💰 ${bait.price} / 5個`}</span>
+            <div style="display:flex; gap:6px;">
+              ${bait.price > 0 ? `<button class="btn-pixel gold" style="padding:4px 8px; font-size:12px;" data-buy-bait="${bait.id}">購買</button>` : ''}
+              <button class="btn-pixel ${isEquipped ? 'cyan' : ''}" style="padding:4px 8px; font-size:12px;" data-equip-bait="${bait.id}">
+                ${isEquipped ? '裝備中' : '裝備'}
+              </button>
+            </div>
+          </div>
+        `;
+        pane.appendChild(card);
+      });
+
+      pane.querySelectorAll('[data-buy-bait]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = parseInt(btn.getAttribute('data-buy-bait'), 10);
+          const b = BAITS[id];
+          if (State.coins < b.price) {
+            showToast('金幣還差一點點喔，多釣幾條魚再來吧！');
+            return;
+          }
+          State.coins -= b.price;
+          b.count += 5;
+          Sound.coin();
+          showToast(`已購入 5 個【${b.name}】！`);
+          updateUI();
+          renderShopBaitTab();
+        });
+      });
+
+      pane.querySelectorAll('[data-equip-bait]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = parseInt(btn.getAttribute('data-equip-bait'), 10);
+          State.equippedBait = id;
+          Sound.tick();
+          showToast(`已裝備【${BAITS[id].name}】！`);
+          updateUI();
+          renderShopBaitTab();
+        });
+      });
+    }
+
+    function renderShopRodTab() {
+      const pane = document.getElementById('shop-rod-pane');
+      pane.innerHTML = '';
+      RODS.forEach(rod => {
+        const isUnlocked = State.unlockedRods.includes(rod.id);
+        const isEquipped = State.equippedRod === rod.id;
+        const card = document.createElement('div');
+        card.className = `card-item ${isEquipped ? 'equipped' : ''}`;
+        card.innerHTML = `
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <strong>🎣 ${rod.name}</strong>
+            <span style="font-size:11px; padding:2px 6px; border-radius:4px; background:${isEquipped ? '#22c55e' : '#475569'}; color:#fff;">
+              ${isEquipped ? '使用中' : (isUnlocked ? '已擁有' : '未解鎖')}
+            </span>
+          </div>
+          <p style="font-size:12px; color:#cbd5e1; line-height:1.4;">${rod.desc}</p>
+          <div style="font-size:11px; color:#38bdf8; display:flex; gap:10px;">
+            <span>幸運倍率: ×${rod.luck}</span>
+            <span>安全區放寬: +${rod.bonusWidth}px</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px;">
+            <span style="font-weight:bold; color:#fbbf24;">${rod.price === 0 ? '自帶' : `💰 ${rod.price.toLocaleString()}`}</span>
+            <div>
+              ${!isUnlocked ? `<button class="btn-pixel gold" style="padding:4px 10px; font-size:12px;" data-buy-rod="${rod.id}">升級工藝</button>` :
+              `<button class="btn-pixel ${isEquipped ? 'cyan' : ''}" style="padding:4px 10px; font-size:12px;" data-equip-rod="${rod.id}">${isEquipped ? '裝備中' : '裝備'}</button>`}
+            </div>
+          </div>
+        `;
+        pane.appendChild(card);
+      });
+
+      pane.querySelectorAll('[data-buy-rod]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = parseInt(btn.getAttribute('data-buy-rod'), 10);
+          const r = RODS[id];
+          if (State.coins < r.price) {
+            showToast('金幣還不夠升級這把釣竿喔！');
+            return;
+          }
+          State.coins -= r.price;
+          State.unlockedRods.push(id);
+          State.equippedRod = id;
+          Sound.fanfare();
+          showToast(`恭喜升級鍛造獲得【${r.name}】！安全區更寬更愜意！`);
+          updateUI();
+          renderShopRodTab();
+        });
+      });
+
+      pane.querySelectorAll('[data-equip-rod]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = parseInt(btn.getAttribute('data-equip-rod'), 10);
+          State.equippedRod = id;
+          Sound.tick();
+          showToast(`已換上【${RODS[id].name}】！`);
+          updateUI();
+          renderShopRodTab();
+        });
+      });
+    }
+
+    document.getElementById('btn-open-bag').addEventListener('click', () => {
+      const pane = document.getElementById('bag-fish-list');
+      pane.innerHTML = '';
+      document.getElementById('bag-total-count').textContent = State.bag.length;
+      if (State.bag.length === 0) {
+        pane.innerHTML = `<div style="grid-column: 1/-1; text-align:center; color:#94a3b8; padding:32px;">背包目前空蕩蕩，去海邊拋一竿看看吧！🎣</div>`;
+      } else {
+        State.bag.forEach(fish => {
+          const rInfo = RARITY_INFO[fish.rarity];
+          const div = document.createElement('div');
+          div.className = 'card-item';
+          div.innerHTML = `
+            <div style="display:flex; justify-content:space-between;">
+              <strong style="color:${rInfo.color};">${fish.name}</strong>
+              <span class="rarity-tag" style="background:${rInfo.color}; color:#000;">${rInfo.name}</span>
+            </div>
+            <div style="font-size:12px; color:#94a3b8;">體長: ${fish.length}cm | 價值: ${fish.price} 金幣</div>
+            <div style="font-size:11px; color:#cbd5e1; margin-top:2px;">${fish.desc}</div>
+          `;
+          pane.appendChild(div);
+        });
+      }
+      document.getElementById('modal-bag').classList.add('active');
+    });
+
+    let currentDexFilter = 'all';
+    document.getElementById('btn-open-dex').addEventListener('click', () => {
+      renderFishdex();
+      document.getElementById('modal-dex').classList.add('active');
+    });
+
+    document.querySelectorAll('#dex-filter-tabs .tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('#dex-filter-tabs .tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentDexFilter = btn.getAttribute('data-rarity');
+        renderFishdex();
+      });
+    });
+
+    function renderFishdex() {
+      const container = document.getElementById('dex-fish-list');
+      container.innerHTML = '';
+
+      let filtered = FISH_DATABASE;
+      if (currentDexFilter !== 'all') {
+        filtered = FISH_DATABASE.filter(f => f.rarity === currentDexFilter);
+      }
+
+      let caughtTotal = 0;
+      FISH_DATABASE.forEach(f => {
+        if (State.dex[f.id].caught) caughtTotal++;
+      });
+      document.getElementById('dex-collected-text').textContent = `${caughtTotal}/70`;
+
+      filtered.forEach(fish => {
+        const info = State.dex[fish.id];
+        const isCaught = info.caught;
+        const rInfo = RARITY_INFO[fish.rarity];
+
+        const card = document.createElement('div');
+        card.className = `fishdex-card ${isCaught ? '' : 'locked'}`;
+        card.innerHTML = `
+          <div style="width:48px; height:48px; background:#0f172a; border:1px solid ${isCaught ? rInfo.color : '#334155'}; border-radius:6px; display:flex; align-items:center; justify-content:center;">
+            ${isCaught ? `<div style="font-size:24px;">🐟</div>` : `<span style="font-size:18px; color:#64748b;">?</span>`}
+          </div>
+          <div style="flex:1;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <strong style="color:${isCaught ? rInfo.color : '#94a3b8'};">${isCaught ? fish.name : '？？？？'}</strong>
+              <span class="rarity-tag" style="background:${rInfo.color}; color:#000;">${rInfo.name}</span>
+            </div>
+            <div style="font-size:12px; color:#94a3b8; margin-top:2px;">
+              ${isCaught ? `最大體長: ${info.maxLen}cm | 捕獲次數: ${info.count}` : '尚未捕獲過此魚種'}
+            </div>
+            <div style="font-size:11px; color:#cbd5e1; margin-top:2px;">
+              ${isCaught ? fish.desc : '在悠閒海灣深水區游曳的神秘魚兒...'}
+            </div>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+  </script>
+</body>
+</html>

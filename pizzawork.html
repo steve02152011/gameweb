@@ -1,0 +1,1883 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>披薩店打工大冒險 - Work at a Pizza Place</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      background-color: #23272a;
+      background-image: radial-gradient(circle, rgba(255, 255, 255, 0.05) 1.5px, transparent 1.5px);
+      background-size: 20px 20px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+    }
+
+    /* Roblox Chunky 3D Button Style */
+    .roblox-btn {
+      transition: transform 0.06s ease, border-bottom-width 0.06s ease, background-color 0.15s ease;
+      border-bottom-width: 4px;
+    }
+    .roblox-btn:active {
+      transform: translateY(3px);
+      border-bottom-width: 1px;
+    }
+
+    /* Completely stable, soft countdown progress bar (No flickering, no strobes) */
+    .order-timer-fill {
+      transition: width 0.25s linear, background-color 0.4s ease;
+    }
+
+    /* Gentle single spawn fade - Only played once when an order appears */
+    @keyframes gentleCardAppear {
+      from { opacity: 0; transform: translateY(-4px) scale(0.98); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .order-card-enter {
+      animation: gentleCardAppear 0.25s ease-out forwards;
+    }
+
+    /* Oven Warm Glow (Non-distracting, smooth warmth) */
+    @keyframes gentleOvenGlow {
+      0%, 100% { opacity: 0.8; }
+      50% { opacity: 0.95; }
+    }
+    .oven-glow-active {
+      animation: gentleOvenGlow 1.8s infinite ease-in-out;
+    }
+
+    /* Eye-friendly custom scrollbar */
+    ::-webkit-scrollbar {
+      height: 7px;
+      width: 7px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #181b1e;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #374151;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #4b5563;
+    }
+  </style>
+</head>
+<body class="text-gray-100 min-h-screen flex flex-col justify-between overflow-x-hidden selection:bg-none">
+
+  <!-- Classic Roblox Dark Topbar -->
+  <header class="bg-[#16181b] border-b-2 border-[#0b0d0e] px-3 py-2.5 sm:px-4 flex items-center justify-between shadow-md sticky top-0 z-50">
+    <div class="flex items-center space-x-2 sm:space-x-3">
+      <!-- Back to Home Link as requested -->
+      <a href="index.html" class="roblox-btn bg-slate-700 hover:bg-slate-600 border-slate-900 text-xs sm:text-sm font-bold px-3 py-1.5 rounded-lg text-gray-200 flex items-center gap-1 shadow">
+        <span>←</span>
+        <span>回首頁</span>
+      </a>
+
+      <!-- Brand Logo / Title -->
+      <div class="flex items-center gap-2">
+        <div class="w-6 h-6 sm:w-7 sm:h-7 bg-[#DE2719] rounded flex items-center justify-center font-black text-white text-xs border border-red-900 shadow">
+          R
+        </div>
+        <h1 class="font-black text-xs sm:text-base tracking-wide text-amber-300 hidden xs:inline">
+          披薩店打工大冒險
+        </h1>
+      </div>
+    </div>
+
+    <!-- Status, Sound, and Restart -->
+    <div class="flex items-center space-x-2 sm:space-x-3">
+      <div class="bg-[#202326] px-2.5 py-1 rounded-lg border border-slate-700 flex items-center gap-1.5 shadow-inner">
+        <span class="text-xs text-gray-400 hidden md:inline">營收:</span>
+        <span id="stat-earnings" class="text-emerald-400 font-bold text-xs sm:text-sm">+$0</span>
+      </div>
+
+      <div class="bg-[#202326] px-3 py-1 rounded-lg border border-amber-600/60 flex items-center gap-1.5 shadow-inner">
+        <span class="text-amber-400 font-bold text-sm">💰</span>
+        <span id="stat-money" class="text-amber-300 font-extrabold text-sm sm:text-base tracking-wider">300</span>
+      </div>
+
+      <button id="btn-sound" class="roblox-btn bg-slate-700 hover:bg-slate-600 border-slate-900 px-2.5 py-1 rounded-lg text-xs sm:text-sm text-gray-200" title="切換音效">
+        🔊
+      </button>
+
+      <button id="btn-restart" class="roblox-btn bg-red-600 hover:bg-red-500 border-red-900 text-xs sm:text-sm font-bold px-3 py-1 rounded-lg shadow text-white">
+        重新開始
+      </button>
+    </div>
+  </header>
+
+  <!-- Orders Dashboard (Completely Eye-friendly, In-place DOM updates, No strobe) -->
+  <section class="bg-[#1b1f23] border-b border-slate-700/80 px-3 py-2 shadow-inner">
+    <div class="max-w-6xl mx-auto flex items-center justify-between mb-1">
+      <div class="flex items-center gap-2">
+        <span class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+        <h2 class="text-xs sm:text-sm font-bold text-gray-200 uppercase tracking-wide flex items-center gap-1.5">
+          顧客即時訂單
+          <span id="order-count-badge" class="bg-blue-600 text-white text-[11px] px-2 py-0.2 rounded-full font-bold">0</span>
+        </h2>
+        <span class="text-[11px] text-emerald-400/90 hidden sm:inline">（每單充裕 90 秒悠閒打工，快速送達另享小費！）</span>
+      </div>
+      <div id="ready-items-summary" class="text-xs text-amber-300 font-medium truncate max-w-[200px] sm:max-w-xs text-right">
+        保溫檯：空無一物
+      </div>
+    </div>
+
+    <!-- Orders Cards Container: DOM elements are created once and modified directly to eliminate eye-straining flashing -->
+    <div id="orders-container" class="max-w-6xl mx-auto flex gap-2.5 overflow-x-auto py-1 min-h-[96px] items-center">
+      <div id="orders-empty-msg" class="w-full text-center text-xs text-gray-400 py-5 flex items-center justify-center gap-1.5">
+        <span>🕒</span>
+        <span>正有顧客前來披薩店，準備點餐中...</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Main Area Switcher (Tabs) -->
+  <nav class="max-w-6xl w-full mx-auto px-3 pt-2.5">
+    <div class="grid grid-cols-4 gap-1.5 sm:gap-2 bg-[#181b1e] p-1.5 rounded-xl border border-slate-700/70 shadow">
+      <button onclick="switchArea(1)" id="tab-btn-1" class="roblox-btn bg-[#00A2FF] border-[#006fb0] text-white py-2 sm:py-2.5 px-2 rounded-lg font-black text-xs sm:text-sm flex flex-col sm:flex-row items-center justify-center gap-1 shadow">
+        <span>🍕</span>
+        <span>做披薩區</span>
+        <span class="hidden md:inline text-[10px] opacity-80 font-normal">[1]</span>
+      </button>
+
+      <button onclick="switchArea(2)" id="tab-btn-2" class="roblox-btn bg-slate-700 border-slate-900 text-gray-300 py-2 sm:py-2.5 px-2 rounded-lg font-black text-xs sm:text-sm flex flex-col sm:flex-row items-center justify-center gap-1 shadow">
+        <span>🥤</span>
+        <span>飲料吧檯</span>
+        <span class="hidden md:inline text-[10px] opacity-80 font-normal">[2]</span>
+      </button>
+
+      <button onclick="switchArea(3)" id="tab-btn-3" class="roblox-btn bg-slate-700 border-slate-900 text-gray-300 py-2 sm:py-2.5 px-2 rounded-lg font-black text-xs sm:text-sm flex flex-col sm:flex-row items-center justify-center gap-1 shadow relative">
+        <span>🔥</span>
+        <span>八聯烤爐</span>
+        <span id="ovens-ready-badge" class="hidden absolute -top-1 -right-1 bg-amber-400 text-black text-[10px] font-black px-1.5 rounded-full border border-black">0熟</span>
+        <span class="hidden md:inline text-[10px] opacity-80 font-normal">[3]</span>
+      </button>
+
+      <button onclick="switchArea(4)" id="tab-btn-4" class="roblox-btn bg-slate-700 border-slate-900 text-gray-300 py-2 sm:py-2.5 px-2 rounded-lg font-black text-xs sm:text-sm flex flex-col sm:flex-row items-center justify-center gap-1 shadow">
+        <span>📦</span>
+        <span>原物料倉庫</span>
+        <span class="hidden md:inline text-[10px] opacity-80 font-normal">[4]</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Main Playground Viewport -->
+  <main class="max-w-6xl w-full mx-auto px-3 py-2.5 flex-1 flex flex-col">
+
+    <!-- ========================================== -->
+    <!-- AREA 1: PIZZA MAKING TABLE -->
+    <!-- ========================================== -->
+    <div id="area-1" class="area-panel flex-1 flex flex-col lg:flex-row gap-3">
+      <!-- Pizza Board & Canvas -->
+      <div class="flex-1 bg-[#1c2024] rounded-2xl p-4 border border-slate-700 flex flex-col items-center justify-between shadow-lg relative min-h-[340px]">
+        <div class="w-full flex items-center justify-between border-b border-slate-700 pb-2">
+          <div class="flex items-center gap-2">
+            <span class="text-amber-400 font-bold text-sm sm:text-base">👨‍🍳 料理工作檯</span>
+            <span id="current-pizza-desc" class="text-xs text-gray-400">目前：空餐盤</span>
+          </div>
+          <button onclick="discardPizza()" class="roblox-btn bg-red-700 hover:bg-red-600 border-red-950 text-white text-xs px-2.5 py-1 rounded-lg font-bold">
+            🗑️ 倒掉清空
+          </button>
+        </div>
+
+        <!-- Canvas Pizza Display -->
+        <div class="my-auto py-2 relative flex items-center justify-center">
+          <div class="w-64 h-64 sm:w-72 sm:h-72 rounded-full bg-[#8c5222] border-[6px] border-[#6b3d17] shadow-xl relative flex items-center justify-center overflow-hidden">
+            <canvas id="pizzaCanvas" width="280" height="280" class="rounded-full"></canvas>
+            <div id="canvas-empty-hint" class="absolute inset-0 flex flex-col items-center justify-center text-center text-amber-200/70 pointer-events-none p-4">
+              <span class="text-3xl mb-1">🫓</span>
+              <span class="text-xs font-semibold leading-relaxed">請點擊右方「放上麵糰」開始製作！<br><span class="text-yellow-300 font-bold">必備基礎：番茄醬 ＋ 起司粉</span></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Oven Transfer Bar -->
+        <div class="w-full bg-[#15171a] p-2.5 rounded-xl border border-slate-700/80 flex items-center justify-between gap-2">
+          <div class="text-xs text-gray-300 flex items-center gap-1.5">
+            <span>💡</span>
+            <span>基礎須有醬與起司，配料完成後送去烤！</span>
+          </div>
+          <button onclick="sendPizzaToOven()" class="roblox-btn bg-emerald-600 hover:bg-emerald-500 border-emerald-900 text-white font-bold text-xs sm:text-sm px-4 py-2 rounded-lg flex items-center gap-1 shadow">
+            <span>🔥</span>
+            <span>送入空烤爐</span>
+            <span class="hidden sm:inline text-xs opacity-80">[空白鍵]</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Ingredient Dispensers Panel -->
+      <div class="w-full lg:w-80 bg-[#1c2024] rounded-2xl p-4 border border-slate-700 flex flex-col justify-between shadow-lg">
+        <h3 class="font-bold text-sm text-amber-300 mb-2 border-b border-slate-700 pb-1.5 flex items-center justify-between">
+          <span>🍕 加料料理台</span>
+          <span class="text-xs text-gray-400 font-normal">庫存與快捷鍵</span>
+        </h3>
+
+        <div class="grid grid-cols-2 lg:grid-cols-1 gap-2 flex-1">
+          <!-- Step 1: Dough -->
+          <button onclick="addTopping('dough')" class="roblox-btn bg-[#d89758] hover:bg-[#c9894b] border-[#8a5726] text-black font-bold p-2.5 rounded-xl flex items-center justify-between text-left shadow">
+            <div class="flex items-center gap-2">
+              <span class="text-2xl">⚪</span>
+              <div>
+                <div class="text-xs font-black">1. 揉拍麵糰</div>
+                <div class="text-[10px] text-amber-950 font-bold">[按鍵 Z]</div>
+              </div>
+            </div>
+            <span id="stock-badge-dough" class="bg-black/25 text-white text-xs px-2 py-0.5 rounded-md font-mono">10</span>
+          </button>
+
+          <!-- Step 2: Tomato Sauce -->
+          <button onclick="addTopping('sauce')" class="roblox-btn bg-[#c0392b] hover:bg-[#ae3225] border-[#78281f] text-white font-bold p-2.5 rounded-xl flex items-center justify-between text-left shadow">
+            <div class="flex items-center gap-2">
+              <span class="text-2xl">🍅</span>
+              <div>
+                <div class="text-xs font-black">2. 塗番茄醬</div>
+                <div class="text-[10px] text-red-100 font-bold">[按鍵 X]</div>
+              </div>
+            </div>
+            <span id="stock-badge-sauce" class="bg-black/25 text-white text-xs px-2 py-0.5 rounded-md font-mono">10</span>
+          </button>
+
+          <!-- Step 3: Cheese -->
+          <button onclick="addTopping('cheese')" class="roblox-btn bg-[#f39c12] hover:bg-[#df8e0e] border-[#935107] text-black font-bold p-2.5 rounded-xl flex items-center justify-between text-left shadow">
+            <div class="flex items-center gap-2">
+              <span class="text-2xl">🧀</span>
+              <div>
+                <div class="text-xs font-black">3. 灑起司粉</div>
+                <div class="text-[10px] text-amber-950 font-bold">[按鍵 C]</div>
+              </div>
+            </div>
+            <span id="stock-badge-cheese" class="bg-black/25 text-white text-xs px-2 py-0.5 rounded-md font-mono">10</span>
+          </button>
+
+          <!-- Step 4: Pepperoni -->
+          <button onclick="addTopping('pepperoni')" class="roblox-btn bg-[#922b21] hover:bg-[#80251c] border-[#4c110b] text-white font-bold p-2.5 rounded-xl flex items-center justify-between text-left shadow">
+            <div class="flex items-center gap-2">
+              <span class="text-2xl">🥩</span>
+              <div>
+                <div class="text-xs font-black">4. 香腸片 (Pepperoni)</div>
+                <div class="text-[10px] text-red-200 font-bold">[按鍵 V]</div>
+              </div>
+            </div>
+            <span id="stock-badge-pepperoni" class="bg-black/25 text-white text-xs px-2 py-0.5 rounded-md font-mono">10</span>
+          </button>
+
+          <!-- Step 5: Meatballs -->
+          <button onclick="addTopping('meatball')" class="roblox-btn bg-[#6e2c00] hover:bg-[#5b2400] border-[#381600] text-amber-100 font-bold p-2.5 rounded-xl flex items-center justify-between text-left shadow">
+            <div class="flex items-center gap-2">
+              <span class="text-2xl">🧆</span>
+              <div>
+                <div class="text-xs font-black">5. 義式肉丸 (Meatball)</div>
+                <div class="text-[10px] text-amber-200 font-bold">[按鍵 B]</div>
+              </div>
+            </div>
+            <span id="stock-badge-meatball" class="bg-black/25 text-white text-xs px-2 py-0.5 rounded-md font-mono">10</span>
+          </button>
+        </div>
+
+        <div class="mt-2 text-center">
+          <button onclick="switchArea(4)" class="text-xs text-blue-400 hover:text-blue-300 underline underline-offset-2 flex items-center justify-center gap-1 w-full py-1">
+            <span>原物料不夠？點此前去倉庫進貨 ➔</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- AREA 2: DRINK FOUNTAIN BAR -->
+    <!-- ========================================== -->
+    <div id="area-2" class="area-panel flex-1 hidden flex-col lg:flex-row gap-3">
+      <!-- Drink Machine Visualization -->
+      <div class="flex-1 bg-[#1c2024] rounded-2xl p-4 border border-slate-700 flex flex-col items-center justify-between shadow-lg min-h-[340px]">
+        <div class="w-full flex items-center justify-between border-b border-slate-700 pb-2">
+          <div class="flex items-center gap-2">
+            <span class="text-cyan-400 font-bold text-sm sm:text-base">🥤 自動汽水機 (Blox Soda)</span>
+            <span id="current-drink-status" class="text-xs text-gray-400">尚未拿起飲料杯</span>
+          </div>
+          <button onclick="discardDrink()" class="roblox-btn bg-red-700 hover:bg-red-600 border-red-950 text-white text-xs px-2.5 py-1 rounded-lg font-bold">
+            🗑️ 倒掉杯子
+          </button>
+        </div>
+
+        <!-- Interactive Drink Cup & Dispenser Graphic -->
+        <div class="my-auto flex flex-col items-center justify-center py-3">
+          <div class="w-48 h-60 bg-[#141618] rounded-2xl border-2 border-slate-600 p-4 flex flex-col items-center justify-between relative shadow-xl">
+            <!-- Dispenser Nozzles -->
+            <div class="w-full flex justify-around border-b-2 border-slate-700 pb-2">
+              <div class="w-4 h-4 bg-red-600 rounded-b" title="可樂出水孔"></div>
+              <div class="w-4 h-4 bg-emerald-500 rounded-b" title="雪碧出水孔"></div>
+              <div class="w-4 h-4 bg-amber-500 rounded-b" title="芬達出水孔"></div>
+              <div class="w-4 h-4 bg-yellow-600 rounded-b" title="檸檬茶出水孔"></div>
+            </div>
+
+            <!-- Cup Display -->
+            <div id="drink-cup-visual" class="w-24 h-36 border-2 border-dashed border-gray-500 rounded-b-2xl relative flex flex-col justify-end p-1 transition-all overflow-hidden bg-slate-800/40">
+              <!-- Liquid fill -->
+              <div id="drink-liquid" class="w-full h-0 transition-all duration-300 rounded-b-xl flex items-center justify-center relative">
+                <div id="drink-bubbles" class="text-[10px] text-white/80 hidden">🫧🫧</div>
+              </div>
+              <!-- Straw & Lid Indicator -->
+              <div id="drink-lid" class="hidden absolute top-0 inset-x-0 h-4 bg-white/95 border-b-2 border-gray-400 rounded-t flex items-center justify-center">
+                <div class="w-2 h-7 bg-red-500 -mt-3 transform rotate-6 border border-white"></div>
+              </div>
+              <div id="cup-empty-text" class="absolute inset-0 flex items-center justify-center text-[11px] text-center font-bold text-gray-400 pointer-events-none p-1">
+                點擊右側「拿取空紙杯」
+              </div>
+            </div>
+
+            <!-- Fill progress -->
+            <div class="w-full bg-slate-900 rounded-full h-2.5 border border-slate-700 overflow-hidden">
+              <div id="drink-fill-progress" class="bg-cyan-500 h-full w-0 transition-all duration-200"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Drink Help Bar -->
+        <div class="w-full bg-[#15171a] p-2.5 rounded-xl border border-slate-700/80 flex items-center justify-between">
+          <span class="text-xs text-gray-300">流程：拿紙杯 ➔ 按壓口味注水 ➔ 封蓋 ➔ 送至出餐檯</span>
+          <button id="btn-finish-drink" onclick="finishDrinkPackaging()" class="roblox-btn bg-cyan-600 hover:bg-cyan-500 border-cyan-900 text-white font-bold text-xs sm:text-sm px-4 py-2 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed">
+            🥤 封蓋並送出餐檯
+          </button>
+        </div>
+      </div>
+
+      <!-- Drink Controls Dispenser -->
+      <div class="w-full lg:w-80 bg-[#1c2024] rounded-2xl p-4 border border-slate-700 flex flex-col justify-between shadow-lg">
+        <h3 class="font-bold text-sm text-cyan-400 mb-2 border-b border-slate-700 pb-1.5 flex items-center justify-between">
+          <span>🥤 飲料操作台</span>
+          <span class="text-xs text-gray-400 font-normal">紙杯庫存: <b id="stock-badge-cups" class="text-amber-400 font-mono">10</b></span>
+        </h3>
+
+        <!-- Cup grab button -->
+        <button onclick="takeEmptyCup()" class="roblox-btn bg-slate-200 hover:bg-white border-slate-400 text-slate-900 font-black p-3 rounded-xl flex items-center justify-center gap-2 shadow mb-2.5">
+          <span class="text-2xl">🥤</span>
+          <span>拿取空紙杯</span>
+        </button>
+
+        <!-- 4 Flavors -->
+        <div class="grid grid-cols-2 gap-2 flex-1">
+          <button onclick="dispenseDrink('cola')" class="roblox-btn bg-red-600 hover:bg-red-500 border-red-900 text-white font-bold p-2.5 rounded-xl flex flex-col items-center justify-center text-center shadow">
+            <span class="text-2xl mb-1">🥤</span>
+            <span class="text-xs font-black">可口可樂</span>
+            <span class="text-[10px] text-red-200">Cola</span>
+          </button>
+
+          <button onclick="dispenseDrink('sprite')" class="roblox-btn bg-emerald-600 hover:bg-emerald-500 border-emerald-900 text-white font-bold p-2.5 rounded-xl flex flex-col items-center justify-center text-center shadow">
+            <span class="text-2xl mb-1">🍋</span>
+            <span class="text-xs font-black">檸檬雪碧</span>
+            <span class="text-[10px] text-emerald-200">Sprite</span>
+          </button>
+
+          <button onclick="dispenseDrink('fanta')" class="roblox-btn bg-amber-600 hover:bg-amber-500 border-amber-900 text-white font-bold p-2.5 rounded-xl flex flex-col items-center justify-center text-center shadow">
+            <span class="text-2xl mb-1">🍊</span>
+            <span class="text-xs font-black">香橙芬達</span>
+            <span class="text-[10px] text-amber-200">Fanta</span>
+          </button>
+
+          <button onclick="dispenseDrink('lemontea')" class="roblox-btn bg-yellow-600 hover:bg-yellow-500 border-yellow-800 text-white font-bold p-2.5 rounded-xl flex flex-col items-center justify-center text-center shadow">
+            <span class="text-2xl mb-1">🧃</span>
+            <span class="text-xs font-black">檸檬茶</span>
+            <span class="text-[10px] text-yellow-200">Lemon Tea</span>
+          </button>
+        </div>
+
+        <div class="mt-2.5 bg-[#15171a] p-2.5 rounded-xl border border-slate-700/80 text-[11px] text-gray-300">
+          💡 點擊任一口味即可注滿，裝滿後點擊「封蓋並送出餐檯」即可完成出餐準備！
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- AREA 3: 8 OVEN MATRIX -->
+    <!-- ========================================== -->
+    <div id="area-3" class="area-panel flex-1 hidden flex-col gap-3">
+      <div class="bg-[#1c2024] rounded-2xl p-4 border border-slate-700 shadow-lg flex flex-col flex-1">
+        <!-- Ovens Header -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-700 pb-2.5 mb-2.5">
+          <div>
+            <h3 class="font-bold text-sm sm:text-base text-amber-400 flex items-center gap-2">
+              <span>🔥 專業連鎖披薩八聯烤爐 (Ovens 1 ~ 8)</span>
+            </h3>
+            <p class="text-xs text-gray-400 mt-0.5">
+              ⏱️ 烘烤規則：<b>10 秒金黃熟透</b>，超過 <b>15 秒未取出將會烤焦</b>！
+            </p>
+          </div>
+          <div class="flex gap-2">
+            <button onclick="takeAllBakedPizzas()" class="roblox-btn bg-amber-600 hover:bg-amber-500 border-amber-900 text-white font-bold text-xs px-3 py-1.5 rounded-lg shadow">
+              ⚡ 一鍵收起所有烤熟披薩
+            </button>
+          </div>
+        </div>
+
+        <!-- 8 Ovens Grid -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-2.5 flex-1">
+          <div id="ovens-grid" class="contents">
+            <!-- Injected dynamically via JS -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- AREA 4: SUPPLY WAREHOUSE & RESTOCK -->
+    <!-- ========================================== -->
+    <div id="area-4" class="area-panel flex-1 hidden flex-col gap-3">
+      <div class="bg-[#1c2024] rounded-2xl p-4 border border-slate-700 shadow-lg flex flex-col flex-1 justify-between">
+        <!-- Warehouse Header -->
+        <div class="border-b border-slate-700 pb-2.5 mb-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <h3 class="font-bold text-sm sm:text-base text-amber-400 flex items-center gap-2">
+              <span>📦 原物料進貨倉庫 (Restock Hub)</span>
+            </h3>
+            <p class="text-xs text-gray-400">
+              用做披薩賺來的金幣補充耗材，隨時保證廚房供應無虞！
+            </p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="buyAllSupplies()" class="roblox-btn bg-emerald-600 hover:bg-emerald-500 border-emerald-900 text-white font-bold text-xs px-3 py-1.5 rounded-lg shadow">
+              🛒 全部補滿 ($75)
+            </button>
+            <button onclick="claimReliefFund()" class="roblox-btn bg-amber-500 hover:bg-amber-400 border-amber-700 text-black font-black text-xs px-3 py-1.5 rounded-lg shadow">
+              🆘 店長無條件救濟金
+            </button>
+          </div>
+        </div>
+
+        <!-- Supplies Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 flex-1">
+          <!-- 1: Dough -->
+          <div class="bg-[#15171a] p-3 rounded-xl border border-slate-700/80 flex items-center justify-between shadow">
+            <div class="flex items-center gap-3">
+              <span class="text-3xl">🫓</span>
+              <div>
+                <h4 class="font-bold text-sm text-amber-200">優質高筋麵糰</h4>
+                <div class="text-xs text-gray-400 mt-0.5">目前庫存: <b id="wh-stock-dough" class="text-amber-400 font-mono text-sm">10</b> 份</div>
+                <div class="text-[11px] text-emerald-400 font-bold">$15 / 10 份</div>
+              </div>
+            </div>
+            <button onclick="buySupply('dough', 10, 15)" class="roblox-btn bg-blue-600 hover:bg-blue-500 border-blue-900 text-white font-bold text-xs px-3 py-2 rounded-lg">
+              進貨 +10
+            </button>
+          </div>
+
+          <!-- 2: Sauce -->
+          <div class="bg-[#15171a] p-3 rounded-xl border border-slate-700/80 flex items-center justify-between shadow">
+            <div class="flex items-center gap-3">
+              <span class="text-3xl">🍅</span>
+              <div>
+                <h4 class="font-bold text-sm text-red-400">特調番茄醬料</h4>
+                <div class="text-xs text-gray-400 mt-0.5">目前庫存: <b id="wh-stock-sauce" class="text-amber-400 font-mono text-sm">10</b> 罐</div>
+                <div class="text-[11px] text-emerald-400 font-bold">$10 / 10 罐</div>
+              </div>
+            </div>
+            <button onclick="buySupply('sauce', 10, 10)" class="roblox-btn bg-blue-600 hover:bg-blue-500 border-blue-900 text-white font-bold text-xs px-3 py-2 rounded-lg">
+              進貨 +10
+            </button>
+          </div>
+
+          <!-- 3: Cheese -->
+          <div class="bg-[#15171a] p-3 rounded-xl border border-slate-700/80 flex items-center justify-between shadow">
+            <div class="flex items-center gap-3">
+              <span class="text-3xl">🧀</span>
+              <div>
+                <h4 class="font-bold text-sm text-amber-300">莫札瑞拉起司粉</h4>
+                <div class="text-xs text-gray-400 mt-0.5">目前庫存: <b id="wh-stock-cheese" class="text-amber-400 font-mono text-sm">10</b> 罐</div>
+                <div class="text-[11px] text-emerald-400 font-bold">$10 / 10 罐</div>
+              </div>
+            </div>
+            <button onclick="buySupply('cheese', 10, 10)" class="roblox-btn bg-blue-600 hover:bg-blue-500 border-blue-900 text-white font-bold text-xs px-3 py-2 rounded-lg">
+              進貨 +10
+            </button>
+          </div>
+
+          <!-- 4: Pepperoni -->
+          <div class="bg-[#15171a] p-3 rounded-xl border border-slate-700/80 flex items-center justify-between shadow">
+            <div class="flex items-center gap-3">
+              <span class="text-3xl">🥩</span>
+              <div>
+                <h4 class="font-bold text-sm text-red-300">香腸臘腸片盒</h4>
+                <div class="text-xs text-gray-400 mt-0.5">目前庫存: <b id="wh-stock-pepperoni" class="text-amber-400 font-mono text-sm">10</b> 盒</div>
+                <div class="text-[11px] text-emerald-400 font-bold">$15 / 10 盒</div>
+              </div>
+            </div>
+            <button onclick="buySupply('pepperoni', 10, 15)" class="roblox-btn bg-blue-600 hover:bg-blue-500 border-blue-900 text-white font-bold text-xs px-3 py-2 rounded-lg">
+              進貨 +10
+            </button>
+          </div>
+
+          <!-- 5: Meatballs -->
+          <div class="bg-[#15171a] p-3 rounded-xl border border-slate-700/80 flex items-center justify-between shadow">
+            <div class="flex items-center gap-3">
+              <span class="text-3xl">🧆</span>
+              <div>
+                <h4 class="font-bold text-sm text-amber-500">主廚經典肉丸包</h4>
+                <div class="text-xs text-gray-400 mt-0.5">目前庫存: <b id="wh-stock-meatball" class="text-amber-400 font-mono text-sm">10</b> 包</div>
+                <div class="text-[11px] text-emerald-400 font-bold">$15 / 10 包</div>
+              </div>
+            </div>
+            <button onclick="buySupply('meatball', 10, 15)" class="roblox-btn bg-blue-600 hover:bg-blue-500 border-blue-900 text-white font-bold text-xs px-3 py-2 rounded-lg">
+              進貨 +10
+            </button>
+          </div>
+
+          <!-- 6: Cups -->
+          <div class="bg-[#15171a] p-3 rounded-xl border border-slate-700/80 flex items-center justify-between shadow">
+            <div class="flex items-center gap-3">
+              <span class="text-3xl">🥤</span>
+              <div>
+                <h4 class="font-bold text-sm text-cyan-300">耐熱環保紙杯箱</h4>
+                <div class="text-xs text-gray-400 mt-0.5">目前庫存: <b id="wh-stock-cups" class="text-amber-400 font-mono text-sm">10</b> 箱</div>
+                <div class="text-[11px] text-emerald-400 font-bold">$10 / 10 箱</div>
+              </div>
+            </div>
+            <button onclick="buySupply('cups', 10, 10)" class="roblox-btn bg-blue-600 hover:bg-blue-500 border-blue-900 text-white font-bold text-xs px-3 py-2 rounded-lg">
+              進貨 +10
+            </button>
+          </div>
+        </div>
+
+        <div class="mt-2.5 bg-[#15171a] border border-amber-600/30 p-2.5 rounded-xl text-xs text-amber-200/90 flex items-center justify-between">
+          <span>🆘 <strong>輕鬆休閒：</strong>若食材短缺或想隨意測試，隨時點擊「店長無條件救濟金」即可獲取 $50，毫無破產壓力！</span>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Ready Food Storage Counter (出餐保溫檯) -->
+  <section class="max-w-6xl w-full mx-auto px-3 mb-2">
+    <div class="bg-[#171a1d] border border-slate-700/90 rounded-xl p-2.5 flex flex-col sm:flex-row items-center justify-between gap-2 shadow-md">
+      <div class="flex items-center gap-2">
+        <span class="text-lg">🍽️</span>
+        <span class="text-xs sm:text-sm font-bold text-amber-300">保溫出餐檯：</span>
+      </div>
+
+      <!-- Ready items tag list -->
+      <div id="ready-items-list" class="flex-1 flex flex-wrap gap-1.5 items-center justify-start sm:justify-center overflow-x-auto min-h-[30px]">
+        <span class="text-xs text-gray-400 italic">目前檯面上無餐點，做好的披薩或飲料會放置於此供交付訂單！</span>
+      </div>
+
+      <div class="text-[11px] text-gray-400 text-right">
+        點擊上方訂單的「出餐」按鈕即可結算！
+      </div>
+    </div>
+  </section>
+
+  <!-- Mobile Bottom Sticky Navigation -->
+  <footer class="sm:hidden bg-[#131518] border-t border-slate-700/80 p-1.5 sticky bottom-0 z-40">
+    <div class="grid grid-cols-4 gap-1">
+      <button onclick="switchArea(1)" id="m-tab-1" class="roblox-btn bg-[#00A2FF] border-[#006fb0] text-white py-2 rounded-lg text-xs font-black flex flex-col items-center">
+        <span class="text-base">🍕</span>
+        <span>披薩區</span>
+      </button>
+      <button onclick="switchArea(2)" id="m-tab-2" class="roblox-btn bg-slate-700 border-slate-900 text-gray-300 py-2 rounded-lg text-xs font-black flex flex-col items-center">
+        <span class="text-base">🥤</span>
+        <span>飲料區</span>
+      </button>
+      <button onclick="switchArea(3)" id="m-tab-3" class="roblox-btn bg-slate-700 border-slate-900 text-gray-300 py-2 rounded-lg text-xs font-black flex flex-col items-center">
+        <span class="text-base">🔥</span>
+        <span>烤爐區</span>
+      </button>
+      <button onclick="switchArea(4)" id="m-tab-4" class="roblox-btn bg-slate-700 border-slate-900 text-gray-300 py-2 rounded-lg text-xs font-black flex flex-col items-center">
+        <span class="text-base">📦</span>
+        <span>補貨區</span>
+      </button>
+    </div>
+  </footer>
+
+  <!-- Notification Toast Box -->
+  <div id="toast-box" class="fixed bottom-20 sm:bottom-6 right-4 z-50 pointer-events-none flex flex-col gap-2"></div>
+
+  <script>
+    /* =========================================================================
+       AUDIO SYSTEM (Pure Web Audio API - Zero external files)
+       ========================================================================= */
+    let audioCtx = null;
+    let soundEnabled = true;
+
+    function initAudio() {
+      if (!audioCtx) {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        audioCtx = new AudioContextClass();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    document.getElementById('btn-sound').addEventListener('click', () => {
+      soundEnabled = !soundEnabled;
+      document.getElementById('btn-sound').textContent = soundEnabled ? '🔊' : '🔇';
+      showToast(soundEnabled ? '音效已開啟' : '音效已靜音', 'info');
+    });
+
+    // 1. Roblox Classic "OOF!" Sound
+    function playOofSound() {
+      if (!soundEnabled) return;
+      initAudio();
+      try {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sawtooth';
+        
+        const now = audioCtx.currentTime;
+        osc.frequency.setValueAtTime(310, now);
+        osc.frequency.exponentialRampToValueAtTime(130, now + 0.22);
+
+        gain.gain.setValueAtTime(0.3, now);
+        gain.gain.linearRampToValueAtTime(0.01, now + 0.23);
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        osc.start(now);
+        osc.stop(now + 0.23);
+      } catch(e) {}
+    }
+
+    // 2. Coin Reward Sound
+    function playCoinSound() {
+      if (!soundEnabled) return;
+      initAudio();
+      try {
+        const now = audioCtx.currentTime;
+        [987.77, 1318.51].forEach((freq, idx) => {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+
+          gain.gain.setValueAtTime(0.18, now + idx * 0.08);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.18);
+
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+
+          osc.start(now + idx * 0.08);
+          osc.stop(now + idx * 0.08 + 0.19);
+        });
+      } catch(e) {}
+    }
+
+    // 3. Oven Ding / Bell
+    function playDingSound() {
+      if (!soundEnabled) return;
+      initAudio();
+      try {
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(1760, now);
+        
+        gain.gain.setValueAtTime(0.28, now);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.7);
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        osc.start(now);
+        osc.stop(now + 0.7);
+      } catch(e) {}
+    }
+
+    // 4. Splat / Add Topping Sound
+    function playSplatSound() {
+      if (!soundEnabled) return;
+      initAudio();
+      try {
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(420, now);
+        osc.frequency.exponentialRampToValueAtTime(130, now + 0.1);
+
+        gain.gain.setValueAtTime(0.22, now);
+        gain.gain.linearRampToValueAtTime(0.01, now + 0.11);
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        osc.start(now);
+        osc.stop(now + 0.11);
+      } catch(e) {}
+    }
+
+    // 5. Soda Fizz / Pouring Sound
+    function playFizzSound() {
+      if (!soundEnabled) return;
+      initAudio();
+      try {
+        const bufferSize = audioCtx.sampleRate * 0.35;
+        const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          data[i] = Math.random() * 2 - 1;
+        }
+
+        const noise = audioCtx.createBufferSource();
+        noise.buffer = buffer;
+
+        const filter = audioCtx.createBiquadFilter();
+        filter.type = 'bandpass';
+        filter.frequency.value = 2200;
+        filter.Q.value = 3.0;
+
+        const gain = audioCtx.createGain();
+        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.001, audioCtx.currentTime + 0.35);
+
+        noise.connect(filter);
+        filter.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        noise.start();
+      } catch(e) {}
+    }
+
+    /* =========================================================================
+       GAME STATE & CONFIGURATION
+       ========================================================================= */
+    const state = {
+      money: 300,
+      todayEarnings: 0,
+      currentArea: 1,
+
+      // Inventory
+      inventory: {
+        dough: 8,
+        sauce: 8,
+        cheese: 8,
+        pepperoni: 8,
+        meatball: 8,
+        cups: 8
+      },
+
+      // Workbench Pizza
+      currentPizza: {
+        hasDough: false,
+        hasSauce: false,
+        hasCheese: false,
+        pepperoniCount: 0,
+        meatballCount: 0,
+        pepperoniPositions: [],
+        meatballPositions: []
+      },
+
+      // Drink station
+      currentDrink: {
+        hasCup: false,
+        flavor: null, // 'cola' | 'sprite' | 'fanta' | 'lemontea'
+        progress: 0,
+        isSealed: false
+      },
+
+      // 8 Ovens
+      ovens: Array.from({ length: 8 }, (_, i) => ({
+        id: i + 1,
+        occupied: false,
+        pizzaData: null,
+        bakeTimer: 0,
+        status: 'empty' // 'empty' | 'baking' | 'ready' | 'burnt'
+      })),
+
+      readyItems: [],
+      orders: [],
+      nextOrderId: 1
+    };
+
+    /* =========================================================================
+       ROBLOX CUSTOMERS & ORDERS (Completely Non-flickering, Stable DOM)
+       ========================================================================= */
+    const CUSTOMER_NAMES = [
+      "NoobGuy99", "Builderman", "BloxLover", "PizzaMaster", 
+      "BaconHair_XD", "Robloxian404", "Guest1337", "MegaDough"
+    ];
+
+    const ROBLOX_COLORS = ["#F1C40F", "#3498DB", "#E74C3C", "#2ECC71", "#9B59B6", "#E67E22"];
+
+    function createRobloxAvatarSVG(color, faceType) {
+      let faceSVG = `<circle cx="20" cy="22" r="3" fill="#111"/><circle cx="36" cy="22" r="3" fill="#111"/><path d="M 18 32 Q 28 42 38 32" stroke="#111" stroke-width="3" fill="none" stroke-linecap="round"/>`;
+      if (faceType === 'cool') {
+        faceSVG = `<rect x="14" y="18" width="28" height="8" rx="2" fill="#111"/><path d="M 20 33 Q 28 38 36 33" stroke="#111" stroke-width="3" fill="none"/>`;
+      } else if (faceType === 'excited') {
+        faceSVG = `<circle cx="19" cy="21" r="3.5" fill="#111"/><circle cx="37" cy="21" r="3.5" fill="#111"/><ellipse cx="28" cy="33" rx="7" ry="5" fill="#111"/>`;
+      }
+      return `
+        <svg viewBox="0 0 56 56" class="w-10 h-10 rounded-lg border border-slate-700 bg-slate-900 shadow-sm flex-shrink-0">
+          <rect x="10" y="8" width="36" height="38" rx="6" fill="${color || '#F4D03F'}" stroke="#997300" stroke-width="2"/>
+          ${faceSVG}
+        </svg>
+      `;
+    }
+
+    // Add Order without flashing
+    function spawnOrder() {
+      if (state.orders.length >= 5) return;
+
+      const id = state.nextOrderId++;
+      const name = CUSTOMER_NAMES[Math.floor(Math.random() * CUSTOMER_NAMES.length)];
+      const color = ROBLOX_COLORS[Math.floor(Math.random() * ROBLOX_COLORS.length)];
+      const faceTypes = ['normal', 'cool', 'excited'];
+      const face = faceTypes[Math.floor(Math.random() * faceTypes.length)];
+
+      const isDrink = Math.random() > 0.6;
+      let orderItem = {};
+
+      if (!isDrink) {
+        const hasPepperoni = Math.random() > 0.35;
+        const hasMeatball = Math.random() > 0.55;
+        orderItem = {
+          category: 'pizza',
+          label: (hasPepperoni && hasMeatball) ? '超級雙拼披薩' : (hasPepperoni ? '香腸披薩' : (hasMeatball ? '肉丸披薩' : '經典起司披薩')),
+          reqSauce: true,
+          reqCheese: true,
+          reqPepperoni: hasPepperoni,
+          reqMeatball: hasMeatball,
+          reward: 35 + (hasPepperoni ? 15 : 0) + (hasMeatball ? 15 : 0)
+        };
+      } else {
+        const flavors = ['cola', 'sprite', 'fanta', 'lemontea'];
+        const chosenFlavor = flavors[Math.floor(Math.random() * flavors.length)];
+        const labels = { cola: '可口可樂 🥤', sprite: '檸檬雪碧 🍋', fanta: '香橙芬達 🍊', lemontea: '檸檬茶 🧃' };
+        orderItem = {
+          category: 'drink',
+          flavor: chosenFlavor,
+          label: labels[chosenFlavor],
+          reward: 25
+        };
+      }
+
+      const newOrder = {
+        id,
+        name,
+        color,
+        face,
+        orderItem,
+        maxTime: 90,
+        timeLeft: 90,
+        domElement: null,
+        progressElement: null,
+        timeTextElement: null
+      };
+
+      state.orders.push(newOrder);
+      createOrderDOM(newOrder);
+      updateOrderCountBadge();
+    }
+
+    // Creates the DOM node exactly once
+    function createOrderDOM(order) {
+      const container = document.getElementById('orders-container');
+      const emptyMsg = document.getElementById('orders-empty-msg');
+      if (emptyMsg) emptyMsg.classList.add('hidden');
+
+      const card = document.createElement('div');
+      card.id = `order-card-${order.id}`;
+      card.className = 'order-card-enter flex-shrink-0 bg-[#22262b] border border-slate-700 rounded-xl p-2.5 w-60 shadow flex flex-col justify-between';
+
+      card.innerHTML = `
+        <div class="flex items-center gap-2 mb-1.5">
+          ${createRobloxAvatarSVG(order.color, order.face)}
+          <div class="flex-1 overflow-hidden">
+            <div class="text-[11px] font-bold text-amber-300 truncate">${order.name}</div>
+            <div class="text-xs font-black text-white truncate">${order.orderItem.label}</div>
+            <div class="text-[10px] text-emerald-400 font-bold">報酬: $${order.orderItem.reward}</div>
+          </div>
+        </div>
+
+        <!-- Stable Progress Bar (Eye-friendly) -->
+        <div class="w-full bg-slate-900 h-1.5 rounded-full overflow-hidden border border-slate-800/80 mb-2">
+          <div id="order-bar-${order.id}" class="order-timer-fill bg-emerald-500 h-full w-full"></div>
+        </div>
+
+        <div class="flex items-center justify-between gap-1">
+          <span id="order-time-${order.id}" class="text-[10px] text-gray-400 font-mono">剩餘: 90s</span>
+          <button onclick="deliverOrder(${order.id})" class="roblox-btn bg-amber-500 hover:bg-amber-400 border-amber-700 text-black font-black text-xs px-3 py-1 rounded shadow">
+            🚀 出餐交付
+          </button>
+        </div>
+      `;
+
+      container.appendChild(card);
+      order.domElement = card;
+      order.progressElement = card.querySelector(`#order-bar-${order.id}`);
+      order.timeTextElement = card.querySelector(`#order-time-${order.id}`);
+    }
+
+    function removeOrderDOM(orderId) {
+      const card = document.getElementById(`order-card-${orderId}`);
+      if (card) card.remove();
+      updateOrderCountBadge();
+
+      if (state.orders.length === 0) {
+        const emptyMsg = document.getElementById('orders-empty-msg');
+        if (emptyMsg) emptyMsg.classList.remove('hidden');
+      }
+    }
+
+    function updateOrderCountBadge() {
+      const badge = document.getElementById('order-count-badge');
+      badge.textContent = state.orders.length;
+    }
+
+    function deliverOrder(orderId) {
+      initAudio();
+      const orderIdx = state.orders.findIndex(o => o.id === orderId);
+      if (orderIdx === -1) return;
+
+      const order = state.orders[orderIdx];
+      const req = order.orderItem;
+
+      if (req.category === 'pizza') {
+        const readyPizzaIdx = state.readyItems.findIndex(it => {
+          if (it.type !== 'pizza') return false;
+          if (it.isBurnt) return false;
+          if (!it.hasSauce || !it.hasCheese) return false;
+          const hasPep = it.pepperoniCount > 0;
+          const hasMeat = it.meatballCount > 0;
+          return (hasPep === req.reqPepperoni) && (hasMeat === req.reqMeatball);
+        });
+
+        if (readyPizzaIdx !== -1) {
+          state.readyItems.splice(readyPizzaIdx, 1);
+          const speedRatio = order.timeLeft / order.maxTime;
+          const tip = Math.floor(req.reward * speedRatio * 0.5);
+          const totalEarned = req.reward + tip;
+
+          state.money += totalEarned;
+          state.todayEarnings += totalEarned;
+          playCoinSound();
+          showToast(`✅ 交付成功！獲得 $${totalEarned}（包含 $${tip} 快速小費）`, 'success');
+
+          removeOrderDOM(order.id);
+          state.orders.splice(orderIdx, 1);
+          updateUI();
+        } else {
+          const burntIdx = state.readyItems.findIndex(it => it.type === 'pizza' && it.isBurnt);
+          if (burntIdx !== -1) {
+            playOofSound();
+            state.money = Math.max(0, state.money - 15);
+            showToast('❌ 顧客生氣拒收：「這披薩烤焦成黑炭了！」扣除 $15', 'error');
+          } else {
+            playOofSound();
+            showToast('⚠️ 出餐檯上沒有符合該訂單的現成烤熟披薩！請確認配料是否正確。', 'warning');
+          }
+          updateUI();
+        }
+      } else if (req.category === 'drink') {
+        const readyDrinkIdx = state.readyItems.findIndex(it => it.type === 'drink' && it.flavor === req.flavor);
+        if (readyDrinkIdx !== -1) {
+          state.readyItems.splice(readyDrinkIdx, 1);
+          const speedRatio = order.timeLeft / order.maxTime;
+          const tip = Math.floor(req.reward * speedRatio * 0.4);
+          const totalEarned = req.reward + tip;
+
+          state.money += totalEarned;
+          state.todayEarnings += totalEarned;
+          playCoinSound();
+          showToast(`✅ 飲料送達！獲得 $${totalEarned}`, 'success');
+
+          removeOrderDOM(order.id);
+          state.orders.splice(orderIdx, 1);
+          updateUI();
+        } else {
+          playOofSound();
+          showToast('⚠️ 出餐檯上沒有對應口味的現成封蓋飲料！', 'warning');
+        }
+      }
+    }
+
+    /* =========================================================================
+       PIZZA CANVAS RENDERING & WORKBENCH LOGIC
+       ========================================================================= */
+    const canvas = document.getElementById('pizzaCanvas');
+    const ctx = canvas.getContext('2d');
+
+    function drawPizza() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const centerX = canvas.width / 2;
+      const centerY = canvas.height / 2;
+
+      const p = state.currentPizza;
+      const emptyHint = document.getElementById('canvas-empty-hint');
+      const descEl = document.getElementById('current-pizza-desc');
+
+      if (!p.hasDough) {
+        emptyHint.classList.remove('hidden');
+        descEl.textContent = '目前：空餐盤';
+        return;
+      }
+      emptyHint.classList.add('hidden');
+
+      // 1. Dough Crust
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, 115, 0, Math.PI * 2);
+      ctx.fillStyle = '#E8A862';
+      ctx.shadowColor = 'rgba(0,0,0,0.3)';
+      ctx.shadowBlur = 10;
+      ctx.fill();
+      ctx.lineWidth = 10;
+      ctx.strokeStyle = '#D28639';
+      ctx.stroke();
+      ctx.restore();
+
+      // 2. Tomato Sauce
+      if (p.hasSauce) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, 100, 0, Math.PI * 2);
+        ctx.fillStyle = '#C0392B';
+        ctx.fill();
+        for (let i = 0; i < 18; i++) {
+          ctx.beginPath();
+          ctx.arc(centerX + Math.cos(i) * (i * 4.2), centerY + Math.sin(i) * (i * 4.2), 3, 0, Math.PI * 2);
+          ctx.fillStyle = '#962d22';
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+
+      // 3. Cheese Layer
+      if (p.hasCheese) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, 94, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(244, 208, 63, 0.95)';
+        ctx.fill();
+        ctx.fillStyle = '#E59866';
+        for (let j = 0; j < 22; j++) {
+          const angle = (j / 22) * Math.PI * 2;
+          const r = (j % 5) * 16 + 10;
+          ctx.beginPath();
+          ctx.arc(centerX + Math.cos(angle) * r, centerY + Math.sin(angle) * r, 2.5, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+
+      // 4. Pepperoni Slices
+      p.pepperoniPositions.forEach(pos => {
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(pos.x, pos.y, 16, 0, Math.PI * 2);
+        ctx.fillStyle = '#922B21';
+        ctx.fill();
+        ctx.lineWidth = 2.5;
+        ctx.strokeStyle = '#641E16';
+        ctx.stroke();
+        ctx.fillStyle = '#FADBD8';
+        ctx.beginPath();
+        ctx.arc(pos.x - 4, pos.y - 3, 2, 0, Math.PI * 2);
+        ctx.arc(pos.x + 3, pos.y + 4, 1.8, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      });
+
+      // 5. Meatballs
+      p.meatballPositions.forEach(pos => {
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(pos.x, pos.y, 14, 0, Math.PI * 2);
+        ctx.fillStyle = '#6E2C00';
+        ctx.shadowColor = 'rgba(0,0,0,0.35)';
+        ctx.shadowBlur = 4;
+        ctx.fill();
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = '#3E1900';
+        ctx.stroke();
+        ctx.restore();
+      });
+
+      let desc = '生披薩：麵糰';
+      if (p.hasSauce) desc += ' + 醬';
+      if (p.hasCheese) desc += ' + 起司';
+      if (p.pepperoniCount > 0) desc += ` + 香腸(${p.pepperoniCount})`;
+      if (p.meatballCount > 0) desc += ` + 肉丸(${p.meatballCount})`;
+      descEl.textContent = desc;
+    }
+
+    function addTopping(type) {
+      initAudio();
+      const p = state.currentPizza;
+
+      if (type === 'dough') {
+        if (p.hasDough) {
+          showToast('檯面上已經有麵糰囉！', 'info');
+          return;
+        }
+        if (state.inventory.dough <= 0) {
+          showToast('麵糰庫存不足！請前往倉庫進貨。', 'warning');
+          return;
+        }
+        state.inventory.dough--;
+        p.hasDough = true;
+        playSplatSound();
+      } else {
+        if (!p.hasDough) {
+          showToast('請先放上麵糰再添加配料！', 'warning');
+          return;
+        }
+
+        if (type === 'sauce') {
+          if (p.hasSauce) {
+            showToast('已經塗過番茄醬了！', 'info');
+            return;
+          }
+          if (state.inventory.sauce <= 0) {
+            showToast('番茄醬用光了！請去倉庫補貨。', 'warning');
+            return;
+          }
+          state.inventory.sauce--;
+          p.hasSauce = true;
+          playSplatSound();
+        } else if (type === 'cheese') {
+          if (p.hasCheese) {
+            showToast('起司粉已經灑滿囉！', 'info');
+            return;
+          }
+          if (state.inventory.cheese <= 0) {
+            showToast('起司粉庫存不足！請去補貨。', 'warning');
+            return;
+          }
+          state.inventory.cheese--;
+          p.hasCheese = true;
+          playSplatSound();
+        } else if (type === 'pepperoni') {
+          if (p.pepperoniCount >= 8) {
+            showToast('香腸片放滿了！', 'info');
+            return;
+          }
+          if (state.inventory.pepperoni <= 0) {
+            showToast('香腸臘腸庫存不足！', 'warning');
+            return;
+          }
+          state.inventory.pepperoni--;
+          p.pepperoniCount++;
+          const angle = (p.pepperoniCount * 1.25) * Math.PI;
+          const dist = 30 + (p.pepperoniCount % 2) * 35;
+          p.pepperoniPositions.push({
+            x: 140 + Math.cos(angle) * dist,
+            y: 140 + Math.sin(angle) * dist
+          });
+          playSplatSound();
+        } else if (type === 'meatball') {
+          if (p.meatballCount >= 6) {
+            showToast('肉丸放滿了！', 'info');
+            return;
+          }
+          if (state.inventory.meatball <= 0) {
+            showToast('肉丸庫存不足！', 'warning');
+            return;
+          }
+          state.inventory.meatball--;
+          p.meatballCount++;
+          const angle = (p.meatballCount * 1.5) * Math.PI + 0.4;
+          const dist = 25 + (p.meatballCount % 3) * 30;
+          p.meatballPositions.push({
+            x: 140 + Math.cos(angle) * dist,
+            y: 140 + Math.sin(angle) * dist
+          });
+          playSplatSound();
+        }
+      }
+
+      updateUI();
+      drawPizza();
+    }
+
+    function discardPizza() {
+      if (!state.currentPizza.hasDough) return;
+      playOofSound();
+      resetCurrentPizza();
+      showToast('已清空料理台上的披薩', 'info');
+      drawPizza();
+      updateUI();
+    }
+
+    function resetCurrentPizza() {
+      state.currentPizza = {
+        hasDough: false,
+        hasSauce: false,
+        hasCheese: false,
+        pepperoniCount: 0,
+        meatballCount: 0,
+        pepperoniPositions: [],
+        meatballPositions: []
+      };
+    }
+
+    function sendPizzaToOven() {
+      initAudio();
+      const p = state.currentPizza;
+      if (!p.hasDough) {
+        showToast('工作檯上沒有任何披薩可以烘烤！', 'warning');
+        return;
+      }
+
+      // Mandatory Pizza Base Check: Sauce + Cheese
+      if (!p.hasSauce || !p.hasCheese) {
+        showToast('⚠️ 好披薩的基礎一定要有【番茄醬 ＋ 起司粉】！請補齊再烤。', 'warning');
+        return;
+      }
+
+      const emptyOven = state.ovens.find(o => !o.occupied);
+      if (!emptyOven) {
+        showToast('八個烤爐都滿了！請先去烤爐區取出烤好的披薩。', 'error');
+        return;
+      }
+
+      emptyOven.occupied = true;
+      emptyOven.pizzaData = JSON.parse(JSON.stringify(p));
+      emptyOven.bakeTimer = 0;
+      emptyOven.status = 'baking';
+
+      resetCurrentPizza();
+      drawPizza();
+      updateUI();
+      playSplatSound();
+      showToast(`🔥 披薩已送入【烤爐 #${emptyOven.id}】！約 10 秒後烤熟。`, 'success');
+    }
+
+    /* =========================================================================
+       DRINK FOUNTAIN BAR LOGIC
+       ========================================================================= */
+    let drinkInterval = null;
+
+    function takeEmptyCup() {
+      initAudio();
+      if (state.currentDrink.hasCup) {
+        showToast('你已經拿著一個杯子了！', 'info');
+        return;
+      }
+      if (state.inventory.cups <= 0) {
+        showToast('紙杯用光了！請去倉庫進貨。', 'warning');
+        return;
+      }
+
+      state.inventory.cups--;
+      state.currentDrink = {
+        hasCup: true,
+        flavor: null,
+        progress: 0,
+        isSealed: false
+      };
+      playSplatSound();
+      updateDrinkVisual();
+      updateUI();
+      showToast('拿起了空紙杯，請選擇汽水口味注入！', 'info');
+    }
+
+    function dispenseDrink(flavor) {
+      initAudio();
+      if (!state.currentDrink.hasCup) {
+        showToast('請先拿取空紙杯再注水！', 'warning');
+        return;
+      }
+      if (state.currentDrink.isSealed) {
+        showToast('這杯飲料已經封蓋完成，請送至出餐檯！', 'info');
+        return;
+      }
+      if (state.currentDrink.progress >= 100) {
+        showToast('飲料已經裝滿了，請按封蓋按鈕！', 'info');
+        return;
+      }
+
+      state.currentDrink.flavor = flavor;
+      playFizzSound();
+
+      if (drinkInterval) clearInterval(drinkInterval);
+      document.getElementById('drink-bubbles').classList.remove('hidden');
+
+      drinkInterval = setInterval(() => {
+        if (state.currentDrink.progress < 100) {
+          state.currentDrink.progress += 25;
+          if (state.currentDrink.progress > 100) state.currentDrink.progress = 100;
+          updateDrinkVisual();
+        } else {
+          clearInterval(drinkInterval);
+          drinkInterval = null;
+          document.getElementById('drink-bubbles').classList.add('hidden');
+          playDingSound();
+          showToast('汽水已注滿！請點擊「封蓋」按鈕。', 'success');
+        }
+      }, 150);
+    }
+
+    function updateDrinkVisual() {
+      const d = state.currentDrink;
+      const cupVisual = document.getElementById('drink-cup-visual');
+      const emptyText = document.getElementById('cup-empty-text');
+      const liquid = document.getElementById('drink-liquid');
+      const fillBar = document.getElementById('drink-fill-progress');
+      const statusText = document.getElementById('current-drink-status');
+      const lid = document.getElementById('drink-lid');
+      const finishBtn = document.getElementById('btn-finish-drink');
+
+      if (!d.hasCup) {
+        cupVisual.className = 'w-24 h-36 border-2 border-dashed border-gray-500 rounded-b-2xl relative flex flex-col justify-end p-1 transition-all overflow-hidden bg-slate-800/40';
+        emptyText.classList.remove('hidden');
+        liquid.style.height = '0%';
+        fillBar.style.width = '0%';
+        statusText.textContent = '尚未拿起飲料杯';
+        lid.classList.add('hidden');
+        finishBtn.disabled = true;
+        return;
+      }
+
+      emptyText.classList.add('hidden');
+      cupVisual.className = 'w-24 h-36 border-2 border-white/80 rounded-b-2xl relative flex flex-col justify-end p-1 transition-all overflow-hidden bg-slate-200 shadow-inner';
+      liquid.style.height = `${d.progress}%`;
+      fillBar.style.width = `${d.progress}%`;
+
+      const colorMap = {
+        cola: '#641E16',
+        sprite: '#27AE60',
+        fanta: '#D35400',
+        lemontea: '#B7950B'
+      };
+      liquid.style.backgroundColor = colorMap[d.flavor] || 'transparent';
+
+      if (d.progress >= 100) {
+        statusText.textContent = `已裝滿 (${getFlavorName(d.flavor)}) - 待封蓋`;
+        finishBtn.disabled = false;
+      } else if (d.progress > 0) {
+        statusText.textContent = `注水中... (${d.progress}%)`;
+        finishBtn.disabled = true;
+      } else {
+        statusText.textContent = '手持空杯 - 請點選按鍵注水';
+        finishBtn.disabled = true;
+      }
+
+      if (d.isSealed) {
+        lid.classList.remove('hidden');
+      } else {
+        lid.classList.add('hidden');
+      }
+    }
+
+    function getFlavorName(f) {
+      const map = { cola: '可口可樂 🥤', sprite: '檸檬雪碧 🍋', fanta: '香橙芬達 🍊', lemontea: '檸檬茶 🧃' };
+      return map[f] || '汽水';
+    }
+
+    function finishDrinkPackaging() {
+      initAudio();
+      const d = state.currentDrink;
+      if (!d.hasCup || d.progress < 100) return;
+
+      d.isSealed = true;
+      updateDrinkVisual();
+      playCoinSound();
+
+      state.readyItems.push({
+        type: 'drink',
+        flavor: d.flavor,
+        name: getFlavorName(d.flavor)
+      });
+
+      showToast(`🥤 ${getFlavorName(d.flavor)} 已送至保溫出餐檯！`, 'success');
+
+      state.currentDrink = {
+        hasCup: false,
+        flavor: null,
+        progress: 0,
+        isSealed: false
+      };
+      setTimeout(() => {
+        updateDrinkVisual();
+        updateUI();
+      }, 200);
+    }
+
+    function discardDrink() {
+      if (!state.currentDrink.hasCup) return;
+      playOofSound();
+      if (drinkInterval) clearInterval(drinkInterval);
+      state.currentDrink = { hasCup: false, flavor: null, progress: 0, isSealed: false };
+      updateDrinkVisual();
+      updateUI();
+      showToast('已丟棄當前紙杯', 'info');
+    }
+
+    /* =========================================================================
+       8 OVENS SYSTEM (10s Baked, >15s Burnt)
+       ========================================================================= */
+    function renderOvens() {
+      const grid = document.getElementById('ovens-grid');
+      let readyCount = 0;
+
+      grid.innerHTML = state.ovens.map(oven => {
+        if (oven.status === 'ready') readyCount++;
+
+        let statusBadge = '<span class="bg-slate-700 text-gray-300 text-[10px] px-2 py-0.5 rounded font-bold">空置中</span>';
+        let progressWidth = 0;
+        let barColor = 'bg-blue-500';
+        let isFlames = false;
+        let isSmoke = false;
+
+        if (oven.occupied) {
+          if (oven.status === 'baking') {
+            isFlames = true;
+            progressWidth = Math.min(100, (oven.bakeTimer / 10) * 100);
+            barColor = 'bg-amber-500';
+            statusBadge = `<span class="bg-amber-600 text-white text-[10px] px-2 py-0.5 rounded font-bold">烘烤中 ${oven.bakeTimer.toFixed(1)}s</span>`;
+          } else if (oven.status === 'ready') {
+            progressWidth = 100;
+            barColor = 'bg-amber-400';
+            statusBadge = `<span class="bg-amber-400 text-black text-[10px] px-2 py-0.5 rounded font-black">⭐ 金黃熟透！</span>`;
+          } else if (oven.status === 'burnt') {
+            isSmoke = true;
+            progressWidth = 100;
+            barColor = 'bg-red-700';
+            statusBadge = `<span class="bg-red-700 text-white text-[10px] px-2 py-0.5 rounded font-black">💀 烤焦了！</span>`;
+          }
+        }
+
+        return `
+          <div class="bg-[#15171a] border ${oven.status === 'ready' ? 'border-amber-400 shadow-md' : (oven.status === 'burnt' ? 'border-red-600' : 'border-slate-700')} rounded-xl p-2.5 flex flex-col justify-between shadow-sm relative overflow-hidden">
+            <div class="flex items-center justify-between mb-1.5">
+              <span class="text-xs font-black text-gray-300">烤爐 #${oven.id}</span>
+              ${statusBadge}
+            </div>
+
+            <!-- Oven Window -->
+            <div class="w-full h-20 bg-[#0d0f11] rounded-lg border border-slate-800 relative flex items-center justify-center overflow-hidden mb-2">
+              ${isFlames ? '<div class="absolute inset-0 bg-gradient-to-t from-red-600/30 via-amber-500/15 to-transparent oven-glow-active"></div>' : ''}
+              ${isSmoke ? '<div class="absolute inset-0 bg-black/70 flex items-center justify-center text-sm">💨💨</div>' : ''}
+
+              ${oven.occupied ? `
+                <div class="w-12 h-12 rounded-full border-2 ${oven.status === 'burnt' ? 'bg-neutral-900 border-black' : (oven.status === 'ready' ? 'bg-[#d49646] border-amber-600' : 'bg-[#e2ad71] border-amber-800')} flex items-center justify-center shadow">
+                  <span class="text-xs">${oven.status === 'burnt' ? '⚫' : '🍕'}</span>
+                </div>
+              ` : `
+                <span class="text-gray-600 text-xs">空</span>
+              `}
+            </div>
+
+            <!-- Timer Bar -->
+            <div class="w-full bg-slate-900 h-1.5 rounded-full overflow-hidden mb-2">
+              <div class="${barColor} h-full transition-all duration-200" style="width: ${progressWidth}%;"></div>
+            </div>
+
+            <!-- Buttons -->
+            <div class="flex gap-1">
+              ${oven.occupied ? `
+                <button onclick="takeOutOven(${oven.id})" class="roblox-btn w-full ${oven.status === 'burnt' ? 'bg-red-700 hover:bg-red-600 border-red-950 text-white' : 'bg-amber-500 hover:bg-amber-400 border-amber-700 text-black'} font-black text-xs py-1.5 rounded shadow">
+                  ${oven.status === 'burnt' ? '🗑️ 扔掉焦披薩' : '📥 取出披薩'}
+                </button>
+              ` : `
+                <button onclick="insertCurrentPizzaToOvenSlot(${oven.id})" class="roblox-btn w-full bg-slate-700 hover:bg-slate-600 border-slate-900 text-gray-300 font-bold text-xs py-1.5 rounded">
+                  放入此爐
+                </button>
+              `}
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      const ovenBadge = document.getElementById('ovens-ready-badge');
+      if (readyCount > 0) {
+        ovenBadge.classList.remove('hidden');
+        ovenBadge.textContent = `${readyCount}熟`;
+      } else {
+        ovenBadge.classList.add('hidden');
+      }
+    }
+
+    function insertCurrentPizzaToOvenSlot(ovenId) {
+      initAudio();
+      const p = state.currentPizza;
+      if (!p.hasDough) {
+        showToast('料理台上沒有揉製完成的披薩！', 'warning');
+        return;
+      }
+      if (!p.hasSauce || !p.hasCheese) {
+        showToast('好披薩一定要有【番茄醬 ＋ 起司粉】！', 'warning');
+        return;
+      }
+
+      const oven = state.ovens.find(o => o.id === ovenId);
+      if (oven && !oven.occupied) {
+        oven.occupied = true;
+        oven.pizzaData = JSON.parse(JSON.stringify(p));
+        oven.bakeTimer = 0;
+        oven.status = 'baking';
+
+        resetCurrentPizza();
+        drawPizza();
+        updateUI();
+        playSplatSound();
+        showToast(`已將披薩放入烤爐 #${ovenId}！`, 'success');
+      }
+    }
+
+    function takeOutOven(ovenId) {
+      initAudio();
+      const oven = state.ovens.find(o => o.id === ovenId);
+      if (!oven || !oven.occupied) return;
+
+      if (oven.status === 'burnt') {
+        playOofSound();
+        showToast(`烤爐 #${ovenId} 的披薩烤焦了，已丟進垃圾桶！`, 'error');
+      } else if (oven.status === 'ready') {
+        playCoinSound();
+        state.readyItems.push({
+          type: 'pizza',
+          hasSauce: oven.pizzaData.hasSauce,
+          hasCheese: oven.pizzaData.hasCheese,
+          pepperoniCount: oven.pizzaData.pepperoniCount,
+          meatballCount: oven.pizzaData.meatballCount,
+          isBurnt: false,
+          name: getPizzaName(oven.pizzaData)
+        });
+        showToast(`🎉 成功取出金黃香脆的【${getPizzaName(oven.pizzaData)}】送至出餐檯！`, 'success');
+      } else {
+        playOofSound();
+        showToast('⚠️ 披薩還沒烤熟就拿出來了！只能報廢重做。', 'warning');
+      }
+
+      oven.occupied = false;
+      oven.pizzaData = null;
+      oven.bakeTimer = 0;
+      oven.status = 'empty';
+      updateUI();
+    }
+
+    function takeAllBakedPizzas() {
+      initAudio();
+      let count = 0;
+      state.ovens.forEach(oven => {
+        if (oven.occupied && oven.status === 'ready') {
+          state.readyItems.push({
+            type: 'pizza',
+            hasSauce: oven.pizzaData.hasSauce,
+            hasCheese: oven.pizzaData.hasCheese,
+            pepperoniCount: oven.pizzaData.pepperoniCount,
+            meatballCount: oven.pizzaData.meatballCount,
+            isBurnt: false,
+            name: getPizzaName(oven.pizzaData)
+          });
+          oven.occupied = false;
+          oven.pizzaData = null;
+          oven.bakeTimer = 0;
+          oven.status = 'empty';
+          count++;
+        }
+      });
+
+      if (count > 0) {
+        playCoinSound();
+        showToast(`一鍵收起了 ${count} 個烤熟披薩至出餐檯！`, 'success');
+        updateUI();
+      } else {
+        showToast('目前沒有已烤熟的披薩可取出。', 'info');
+      }
+    }
+
+    function getPizzaName(p) {
+      if (p.pepperoniCount > 0 && p.meatballCount > 0) return '超級雙拼披薩';
+      if (p.pepperoniCount > 0) return '香腸披薩';
+      if (p.meatballCount > 0) return '肉丸披薩';
+      return '經典起司披薩';
+    }
+
+    /* =========================================================================
+       SUPPLIES & ECONOMY SYSTEM
+       ========================================================================= */
+    function buySupply(itemKey, amount, cost) {
+      initAudio();
+      if (state.money < cost) {
+        playOofSound();
+        showToast(`金幣不足！需要 $${cost}，目前只有 $${state.money}`, 'error');
+        return;
+      }
+
+      state.money -= cost;
+      state.inventory[itemKey] += amount;
+      playCoinSound();
+      showToast(`📦 進貨成功！+${amount} 單位，花費 $${cost}`, 'success');
+      updateUI();
+    }
+
+    function buyAllSupplies() {
+      initAudio();
+      const totalCost = 75;
+      if (state.money < totalCost) {
+        playOofSound();
+        showToast(`金幣不足以一鍵補滿！需要 $${totalCost}`, 'error');
+        return;
+      }
+
+      state.money -= totalCost;
+      state.inventory.dough += 10;
+      state.inventory.sauce += 10;
+      state.inventory.cheese += 10;
+      state.inventory.pepperoni += 10;
+      state.inventory.meatball += 10;
+      state.inventory.cups += 10;
+
+      playCoinSound();
+      showToast('🛒 已將所有原物料進貨補滿 (+10)！', 'success');
+      updateUI();
+    }
+
+    function claimReliefFund() {
+      initAudio();
+      state.money += 50;
+      playCoinSound();
+      showToast('🆘 領取了店長救濟金 $50！放鬆心情繼續打工！', 'success');
+      updateUI();
+    }
+
+    /* =========================================================================
+       MAIN GAME TIMER LOOP (Flicker-Free In-Place Updates)
+       ========================================================================= */
+    setInterval(() => {
+      // 1. Oven Baking Timers
+      state.ovens.forEach(oven => {
+        if (oven.occupied) {
+          oven.bakeTimer += 0.25;
+
+          if (oven.bakeTimer >= 10 && oven.bakeTimer <= 15) {
+            if (oven.status !== 'ready') {
+              oven.status = 'ready';
+              playDingSound();
+            }
+          } else if (oven.bakeTimer > 15) {
+            if (oven.status !== 'burnt') {
+              oven.status = 'burnt';
+              playOofSound();
+            }
+          }
+        }
+      });
+      renderOvens();
+
+      // 2. Orders Timer - In-place DOM updates (Never re-render innerHTML!)
+      for (let i = state.orders.length - 1; i >= 0; i--) {
+        const order = state.orders[i];
+        order.timeLeft -= 0.25;
+
+        if (order.timeLeft <= 0) {
+          const removedId = order.id;
+          state.orders.splice(i, 1);
+          removeOrderDOM(removedId);
+          state.money = Math.max(0, state.money - 5);
+          playOofSound();
+          showToast(`⏱️ 訂單逾時！顧客投訴並離開，罰款 $5`, 'error');
+          updateUI();
+        } else {
+          // Smoothly update bar width and text directly on the node
+          const progressPercent = Math.max(0, (order.timeLeft / order.maxTime) * 100);
+          if (order.progressElement) {
+            order.progressElement.style.width = `${progressPercent}%`;
+            if (progressPercent > 50) {
+              order.progressElement.className = 'order-timer-fill bg-emerald-500 h-full';
+            } else if (progressPercent > 20) {
+              order.progressElement.className = 'order-timer-fill bg-amber-500 h-full';
+            } else {
+              order.progressElement.className = 'order-timer-fill bg-rose-500 h-full';
+            }
+          }
+          if (order.timeTextElement) {
+            order.timeTextElement.textContent = `剩餘: ${Math.ceil(order.timeLeft)}s`;
+          }
+        }
+      }
+    }, 250);
+
+    // Spawns order comfortably
+    setInterval(() => {
+      spawnOrder();
+    }, 11000);
+
+    /* =========================================================================
+       UI UPDATES & SHELF
+       ========================================================================= */
+    function updateUI() {
+      document.getElementById('stat-money').textContent = state.money;
+      document.getElementById('stat-earnings').textContent = `+$${state.todayEarnings}`;
+
+      document.getElementById('stock-badge-dough').textContent = state.inventory.dough;
+      document.getElementById('stock-badge-sauce').textContent = state.inventory.sauce;
+      document.getElementById('stock-badge-cheese').textContent = state.inventory.cheese;
+      document.getElementById('stock-badge-pepperoni').textContent = state.inventory.pepperoni;
+      document.getElementById('stock-badge-meatball').textContent = state.inventory.meatball;
+      document.getElementById('stock-badge-cups').textContent = state.inventory.cups;
+
+      document.getElementById('wh-stock-dough').textContent = state.inventory.dough;
+      document.getElementById('wh-stock-sauce').textContent = state.inventory.sauce;
+      document.getElementById('wh-stock-cheese').textContent = state.inventory.cheese;
+      document.getElementById('wh-stock-pepperoni').textContent = state.inventory.pepperoni;
+      document.getElementById('wh-stock-meatball').textContent = state.inventory.meatball;
+      document.getElementById('wh-stock-cups').textContent = state.inventory.cups;
+
+      renderReadyCounter();
+    }
+
+    function renderReadyCounter() {
+      const listEl = document.getElementById('ready-items-list');
+      const summaryEl = document.getElementById('ready-items-summary');
+
+      if (state.readyItems.length === 0) {
+        listEl.innerHTML = '<span class="text-xs text-gray-400 italic">目前檯面上無餐點，做好的披薩或飲料會放置於此供交付訂單！</span>';
+        summaryEl.textContent = '保溫檯：空無一物';
+        return;
+      }
+
+      summaryEl.textContent = `保溫檯：${state.readyItems.length} 份待送`;
+
+      listEl.innerHTML = state.readyItems.map((it, idx) => {
+        const isPizza = it.type === 'pizza';
+        return `
+          <div class="bg-slate-800 border border-amber-500/40 rounded-lg px-2 py-0.5 flex items-center gap-1.5 shadow">
+            <span class="text-sm">${isPizza ? '🍕' : '🥤'}</span>
+            <span class="text-xs text-amber-200 font-bold">${it.name}</span>
+            <button onclick="discardReadyItem(${idx})" class="text-gray-400 hover:text-red-400 text-xs ml-1 font-bold">×</button>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function discardReadyItem(index) {
+      if (index >= 0 && index < state.readyItems.length) {
+        state.readyItems.splice(index, 1);
+        updateUI();
+        showToast('已清理出餐檯上的餐點', 'info');
+      }
+    }
+
+    /* =========================================================================
+       AREA NAVIGATION & KEYBOARD SHORTCUTS
+       ========================================================================= */
+    function switchArea(areaId) {
+      state.currentArea = areaId;
+
+      for (let i = 1; i <= 4; i++) {
+        const panel = document.getElementById(`area-${i}`);
+        const tabBtn = document.getElementById(`tab-btn-${i}`);
+        const mTabBtn = document.getElementById(`m-tab-${i}`);
+
+        if (i === areaId) {
+          panel.classList.remove('hidden');
+          panel.classList.add('flex');
+          tabBtn.className = 'roblox-btn bg-[#00A2FF] border-[#006fb0] text-white py-2 sm:py-2.5 px-2 rounded-lg font-black text-xs sm:text-sm flex flex-col sm:flex-row items-center justify-center gap-1 shadow';
+          if (mTabBtn) mTabBtn.className = 'roblox-btn bg-[#00A2FF] border-[#006fb0] text-white py-2 rounded-lg text-xs font-black flex flex-col items-center';
+        } else {
+          panel.classList.add('hidden');
+          panel.classList.remove('flex');
+          tabBtn.className = 'roblox-btn bg-slate-700 border-slate-900 text-gray-300 py-2 sm:py-2.5 px-2 rounded-lg font-black text-xs sm:text-sm flex flex-col sm:flex-row items-center justify-center gap-1 shadow';
+          if (mTabBtn) mTabBtn.className = 'roblox-btn bg-slate-700 border-slate-900 text-gray-300 py-2 rounded-lg text-xs font-black flex flex-col items-center';
+        }
+      }
+    }
+
+    window.addEventListener('keydown', (e) => {
+      if (e.target.tagName === 'INPUT') return;
+
+      const key = e.key.toUpperCase();
+
+      if (key === '1') switchArea(1);
+      else if (key === '2') switchArea(2);
+      else if (key === '3') switchArea(3);
+      else if (key === '4') switchArea(4);
+      else if (key === 'A' || e.key === 'ArrowLeft') {
+        const next = state.currentArea > 1 ? state.currentArea - 1 : 4;
+        switchArea(next);
+      } else if (key === 'D' || e.key === 'ArrowRight') {
+        const next = state.currentArea < 4 ? state.currentArea + 1 : 1;
+        switchArea(next);
+      }
+
+      if (state.currentArea === 1) {
+        if (key === 'Z') addTopping('dough');
+        else if (key === 'X') addTopping('sauce');
+        else if (key === 'C') addTopping('cheese');
+        else if (key === 'V') addTopping('pepperoni');
+        else if (key === 'B') addTopping('meatball');
+        else if (e.code === 'Space') {
+          e.preventDefault();
+          sendPizzaToOven();
+        }
+      }
+    });
+
+    /* =========================================================================
+       TOAST NOTIFICATIONS & RESTART
+       ========================================================================= */
+    function showToast(message, type = 'info') {
+      const box = document.getElementById('toast-box');
+      const toast = document.createElement('div');
+
+      let borderClass = 'border-blue-500 bg-slate-900 text-blue-200';
+      if (type === 'success') borderClass = 'border-emerald-500 bg-slate-900 text-emerald-200';
+      else if (type === 'warning') borderClass = 'border-amber-500 bg-slate-900 text-amber-200';
+      else if (type === 'error') borderClass = 'border-red-600 bg-slate-900 text-red-200';
+
+      toast.className = `border ${borderClass} px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold shadow-xl flex items-center gap-2`;
+      toast.innerHTML = `<span>${message}</span>`;
+
+      box.appendChild(toast);
+      setTimeout(() => {
+        toast.style.transition = 'all 0.25s ease';
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(8px)';
+        setTimeout(() => toast.remove(), 250);
+      }, 2400);
+    }
+
+    document.getElementById('btn-restart').addEventListener('click', () => {
+      state.money = 300;
+      state.todayEarnings = 0;
+      state.inventory = { dough: 8, sauce: 8, cheese: 8, pepperoni: 8, meatball: 8, cups: 8 };
+      resetCurrentPizza();
+      state.currentDrink = { hasCup: false, flavor: null, progress: 0, isSealed: false };
+      state.ovens.forEach(o => {
+        o.occupied = false;
+        o.pizzaData = null;
+        o.bakeTimer = 0;
+        o.status = 'empty';
+      });
+      state.readyItems = [];
+
+      // Clean orders container
+      const container = document.getElementById('orders-container');
+      container.innerHTML = `
+        <div id="orders-empty-msg" class="w-full text-center text-xs text-gray-400 py-5 flex items-center justify-center gap-1.5">
+          <span>🕒</span>
+          <span>正有顧客前來披薩店，準備點餐中...</span>
+        </div>
+      `;
+      state.orders = [];
+      state.nextOrderId = 1;
+
+      spawnOrder();
+      spawnOrder();
+
+      switchArea(1);
+      drawPizza();
+      updateDrinkVisual();
+      updateUI();
+      playDingSound();
+      showToast('🔄 遊戲已重新開始！', 'success');
+    });
+
+    window.addEventListener('load', () => {
+      spawnOrder();
+      spawnOrder();
+
+      drawPizza();
+      updateDrinkVisual();
+      renderOvens();
+      updateUI();
+    });
+  </script>
+</body>
+</html>
